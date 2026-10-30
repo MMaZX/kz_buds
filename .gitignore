@@ -51,3 +51,6 @@ app.*.map.json
 .fvm/
 # Agent tooling
 .atl/
+
+# Third-party reference repos (read-only, never committed)
+git-content/

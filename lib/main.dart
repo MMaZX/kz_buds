@@ -4,9 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'data/fake/fake_earbuds_adapter.dart';
 import 'presentation/pages/device_home_page.dart';
 import 'presentation/providers/earbuds_providers.dart';
+import 'presentation/theme/kz_licenses.dart';
 import 'presentation/theme/kz_palette.dart';
 
 void main() {
+  registerKzLicenses();
   runApp(
     ProviderScope(
       overrides: [earbudsPortProvider.overrideWithValue(FakeEarbudsAdapter())],

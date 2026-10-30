@@ -30,11 +30,11 @@ void main() {
   });
 
   test('connection stream emits current value then updates', () async {
-    final fake = FakeEarbudsAdapter(initialConnection: LinkState.connecting);
+    final fake = FakeEarbudsAdapter(initialLinkState: LinkState.connecting);
     final events = <LinkState>[];
     final sub = fake.watchConnection().listen(events.add);
     await pumpEventQueue();
-    fake.updateConnection(LinkState.disconnected);
+    fake.updateLinkState(LinkState.disconnected);
     await pumpEventQueue();
     expect(events, [LinkState.connecting, LinkState.disconnected]);
     await sub.cancel();
@@ -53,5 +53,18 @@ void main() {
     );
     await withAnc.dispose();
     await without.dispose();
+  });
+
+  test('anc mode stream emits current value then each change', () async {
+    final fake = FakeEarbudsAdapter(capabilities: {Capability.anc});
+    final events = <AncMode>[];
+    final sub = fake.watchAncMode().listen(events.add);
+    await pumpEventQueue();
+    await fake.setAncMode(AncMode.noiseCancelling);
+    await fake.setAncMode(AncMode.ambient);
+    await pumpEventQueue();
+    expect(events, [AncMode.off, AncMode.noiseCancelling, AncMode.ambient]);
+    await sub.cancel();
+    await fake.dispose();
   });
 }

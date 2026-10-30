@@ -10,6 +10,10 @@ abstract class EarbudsPort {
 
   Stream<BatteryStatus> watchBattery();
 
+  /// Current mode first, then every change. Only meaningful with
+  /// [Capability.anc].
+  Stream<AncMode> watchAncMode();
+
   /// Throws [UnsupportedError] if [Capability.anc] is not reported.
   Future<void> setAncMode(AncMode mode);
 }

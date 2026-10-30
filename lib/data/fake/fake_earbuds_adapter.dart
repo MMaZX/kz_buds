@@ -15,18 +15,19 @@ class FakeEarbudsAdapter implements EarbudsPort {
       right: 78,
       caseLevel: 60,
     ),
-    LinkState initialConnection = LinkState.connected,
+    LinkState initialLinkState = LinkState.connected,
   }) : _capabilities = Set.unmodifiable(capabilities),
        _battery = initialBattery,
-       _connection = initialConnection;
+       _link = initialLinkState;
 
   final Set<Capability> _capabilities;
   BatteryStatus _battery;
-  LinkState _connection;
+  LinkState _link;
   AncMode _ancMode = AncMode.off;
 
+  final _ancController = StreamController<AncMode>.broadcast();
   final _batteryController = StreamController<BatteryStatus>.broadcast();
-  final _connectionController = StreamController<LinkState>.broadcast();
+  final _linkController = StreamController<LinkState>.broadcast();
 
   AncMode get ancMode => _ancMode;
 
@@ -35,15 +36,15 @@ class FakeEarbudsAdapter implements EarbudsPort {
     _batteryController.add(battery);
   }
 
-  void updateConnection(LinkState connection) {
-    _connection = connection;
-    _connectionController.add(connection);
+  void updateLinkState(LinkState connection) {
+    _link = connection;
+    _linkController.add(connection);
   }
 
   @override
   Stream<LinkState> watchConnection() async* {
-    yield _connection;
-    yield* _connectionController.stream;
+    yield _link;
+    yield* _linkController.stream;
   }
 
   @override
@@ -56,15 +57,23 @@ class FakeEarbudsAdapter implements EarbudsPort {
   }
 
   @override
+  Stream<AncMode> watchAncMode() async* {
+    yield _ancMode;
+    yield* _ancController.stream;
+  }
+
+  @override
   Future<void> setAncMode(AncMode mode) async {
     if (!_capabilities.contains(Capability.anc)) {
       throw UnsupportedError('Device does not report Capability.anc');
     }
     _ancMode = mode;
+    _ancController.add(mode);
   }
 
   Future<void> dispose() async {
+    await _ancController.close();
     await _batteryController.close();
-    await _connectionController.close();
+    await _linkController.close();
   }
 }

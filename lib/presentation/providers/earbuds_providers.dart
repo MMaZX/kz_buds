@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/capabilities/capability.dart';
+import '../../domain/entities/anc_mode.dart';
 import '../../domain/entities/battery_status.dart';
 import '../../domain/entities/link_state.dart';
 import '../../domain/ports/earbuds_port.dart';
@@ -20,4 +21,8 @@ final batteryProvider = StreamProvider<BatteryStatus>(
 
 final capabilitiesProvider = FutureProvider<Set<Capability>>(
   (ref) => ref.watch(earbudsPortProvider).capabilities(),
+);
+
+final ancModeProvider = StreamProvider<AncMode>(
+  (ref) => ref.watch(earbudsPortProvider).watchAncMode(),
 );

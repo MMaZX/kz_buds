@@ -31,6 +31,7 @@ abstract final class KzIcons {
   static const KzIconData bluetooth = HugeIcons.strokeRoundedBluetooth;
   static const KzIconData settings = HugeIcons.strokeRoundedSettings02;
   static const KzIconData home = HugeIcons.strokeRoundedHome01;
+  static const KzIconData power = HugeIcons.strokeRoundedPower;
 }
 
 class KzIcon extends StatelessWidget {

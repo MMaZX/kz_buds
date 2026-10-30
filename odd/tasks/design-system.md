@@ -20,7 +20,7 @@ Plan: docs/design/DESIGN_PLAN.md (Copper accent, as recommended there).
 ## Tasks
 - [x] T1 S1 inline spike: shadcn_ui under WidgetsApp (test/spike/shadcn_under_widgets_app_test.dart, findings in L5). Commit: `test(theme): spike shadcn under WidgetsApp`
 - [x] T2 S2 S3 S4 inline: palette, color scheme, colors, guard + contrast tests. Commit: `feat(theme): add KZ palette and color scheme`
-- [ ] T3 S7 inline: Inter assets + license, type scale. Commit: -
+- [x] T3 S7 inline: Inter assets + license, type scale. Commit: `feat(theme): bundle Inter and type scale`
 - [ ] T4 S1 S6 inline: metrics, motion, theme, scope, providers, main wiring. Commit: -
 - [ ] T5 S8 inline: glass + ambient background (+ goldens). Commit: -
 - [ ] T6 S9 S5 inline: hugeicons, `KzIcons`, battery glyph, ANC rings. Commit: -
@@ -41,3 +41,4 @@ Route: all inline; no Writer trigger (units are sequential and share theme files
 - L5 T1 result (2026-10-29): under our own `WidgetsApp` (no `ShadApp`, no Material `Theme`), composed as `ShadAnimatedTheme` > `DefaultTextStyle` > `ShadAppBuilder`, with `GlobalShadLocalizations.delegate`: ShadButton, ShadSwitch, ShadSlider, ShadInput and ShadSelect render; select, popover, dialog, sheet and toast open with no exception; `ShadTheme.of` resolves. 3 tests pass, `fvm flutter analyze` clean. Not yet covered: plan 7.3 step 3 (Scaffold text-style gotcha, known from source only), step 4 (selection handles, hover, blur on Linux/Windows/Android: manual), step 5 (tabular figures, needs Inter from T3), step 6 (rotated vertical slider, T9).
 - L6 Note: the Engram mirror `odd/design-system/tasks` was first saved as a summary; it must hold the full document, refresh it after each task.
 - L8 T2 result: RED observed (hex-literal guard failed on existing code, scheme test did not compile). GREEN: 27 tests pass, `fvm flutter analyze` clean. All S4 contrast checks passed on the first palette (dark and light), so no token was adjusted. Existing literals in `main.dart` and `device_home_page.dart` moved to `KzPalette`; T4 replaces them with the theme scope. Guard also checks the domain stays free of Flutter and Riverpod.
+- L9 T3 result: Inter v4.1 (SIL OFL 1.1, official `rsms/inter` release zip, downloaded and extracted in scratch dirs, only 4 TTFs + LICENSE.txt copied) bundled under `assets/fonts/inter/` (Regular, Medium, SemiBold, plus InterDisplay-Light for numerals, 1.66 MB). RED observed, then GREEN: 33 tests, analyze clean, `flutter build linux --debug` bundles the fonts and license. The tabular-figures check (plan 7.3 step 5) passes: `11%` and `88%` have equal width in `numeralXl`. License registered via `registerKzLicenses()` in `main()`. Doto is T11. Shad text-theme colors are not set here, T4 applies them from the scheme.

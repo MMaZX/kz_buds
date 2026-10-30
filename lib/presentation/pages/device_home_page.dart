@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/battery_status.dart';
 import '../../domain/entities/link_state.dart';
 import '../providers/earbuds_providers.dart';
-import '../theme/kz_palette.dart';
 import '../widgets/battery_tile.dart';
 
 class DeviceHomePage extends ConsumerWidget {
@@ -15,21 +14,18 @@ class DeviceHomePage extends ConsumerWidget {
     final connection = ref.watch(connectionProvider);
     final battery = ref.watch(batteryProvider);
 
-    return ColoredBox(
-      color: KzPalette.ink950,
-      child: Center(
-        child: switch (connection) {
-          AsyncData(value: LinkState.connected) => switch (battery) {
-            AsyncData(:final value) => _BatteryRow(status: value),
-            AsyncError() => const Text('Battery unavailable'),
-            _ => const Text('Loading...'),
-          },
-          AsyncData(value: LinkState.connecting) => const Text('Connecting...'),
-          AsyncData() => const Text('Disconnected'),
-          AsyncError() => const Text('Connection error'),
+    return Center(
+      child: switch (connection) {
+        AsyncData(value: LinkState.connected) => switch (battery) {
+          AsyncData(:final value) => _BatteryRow(status: value),
+          AsyncError() => const Text('Battery unavailable'),
           _ => const Text('Loading...'),
         },
-      ),
+        AsyncData(value: LinkState.connecting) => const Text('Connecting...'),
+        AsyncData() => const Text('Disconnected'),
+        AsyncError() => const Text('Connection error'),
+        _ => const Text('Loading...'),
+      },
     );
   }
 }

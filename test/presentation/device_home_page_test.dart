@@ -1,10 +1,9 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kz_buds/data/fake/fake_earbuds_adapter.dart';
 import 'package:kz_buds/domain/entities/battery_status.dart';
 import 'package:kz_buds/domain/entities/link_state.dart';
-import 'package:kz_buds/presentation/pages/device_home_page.dart';
+import 'package:kz_buds/main.dart';
 import 'package:kz_buds/presentation/providers/earbuds_providers.dart';
 
 Future<void> pumpPage(WidgetTester tester, FakeEarbudsAdapter fake) async {
@@ -12,7 +11,7 @@ Future<void> pumpPage(WidgetTester tester, FakeEarbudsAdapter fake) async {
   await tester.pumpWidget(
     ProviderScope(
       overrides: [earbudsPortProvider.overrideWithValue(fake)],
-      child: const MaterialApp(home: DeviceHomePage()),
+      child: const KzBudsApp(),
     ),
   );
   await tester.pumpAndSettle();

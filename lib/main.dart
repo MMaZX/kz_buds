@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'data/fake/fake_earbuds_adapter.dart';
@@ -19,10 +19,16 @@ class KzBudsApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return WidgetsApp(
       title: 'KZ Buds',
-      theme: ThemeData(colorSchemeSeed: Colors.teal, useMaterial3: true),
+      color: const Color(0xFF000000),
+      textStyle: const TextStyle(color: Color(0xFFFFFFFF), fontSize: 16),
       home: const DeviceHomePage(),
+      pageRouteBuilder: <T>(RouteSettings settings, WidgetBuilder builder) =>
+          PageRouteBuilder<T>(
+            settings: settings,
+            pageBuilder: (context, _, _) => builder(context),
+          ),
     );
   }
 }

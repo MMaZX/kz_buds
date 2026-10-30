@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/battery_status.dart';
@@ -14,19 +14,19 @@ class DeviceHomePage extends ConsumerWidget {
     final connection = ref.watch(connectionProvider);
     final battery = ref.watch(batteryProvider);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('KZ Buds')),
-      body: Center(
+    return ColoredBox(
+      color: const Color(0xFF000000),
+      child: Center(
         child: switch (connection) {
           AsyncData(value: LinkState.connected) => switch (battery) {
             AsyncData(:final value) => _BatteryRow(status: value),
             AsyncError() => const Text('Battery unavailable'),
-            _ => const CircularProgressIndicator(),
+            _ => const Text('Loading...'),
           },
           AsyncData(value: LinkState.connecting) => const Text('Connecting...'),
           AsyncData() => const Text('Disconnected'),
           AsyncError() => const Text('Connection error'),
-          _ => const CircularProgressIndicator(),
+          _ => const Text('Loading...'),
         },
       ),
     );

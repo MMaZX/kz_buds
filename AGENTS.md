@@ -51,6 +51,9 @@ Dependency rule: `presentation -> domain <- data`. The domain never imports from
 6. **Protocol code is pure Dart and tested.** Packet parsing/building has unit tests with captured byte fixtures.
 7. **UI first with the fake adapter.** Every screen must work with `FakeEarbudsAdapter` before real BLE is wired.
 8. **No hardware calls in widgets.** Widgets read providers; they never touch Bluetooth.
+9. **No Material, no Cupertino. Ever.** The UI uses only `package:flutter/widgets.dart` (and lower layers such as
+   `rendering`, `painting`, `animation`). Never import `package:flutter/material.dart` or
+   `package:flutter/cupertino.dart`; the app root is `WidgetsApp`. All visuals are our own design system.
 
 ## Reverse engineering and legal
 

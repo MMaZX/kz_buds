@@ -10,6 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_riverpod: ^3.4.3
+  shadcn_ui: ^0.57.3
 
 dev_dependencies:
   flutter_test:

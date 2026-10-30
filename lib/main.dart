@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'data/fake/fake_earbuds_adapter.dart';
 import 'presentation/pages/device_home_page.dart';
 import 'presentation/providers/earbuds_providers.dart';
+import 'presentation/theme/kz_palette.dart';
 
 void main() {
   runApp(
@@ -21,8 +22,8 @@ class KzBudsApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return WidgetsApp(
       title: 'KZ Buds',
-      color: const Color(0xFF000000),
-      textStyle: const TextStyle(color: Color(0xFFFFFFFF), fontSize: 16),
+      color: KzPalette.ink950,
+      textStyle: const TextStyle(color: KzPalette.paper, fontSize: 16),
       home: const DeviceHomePage(),
       pageRouteBuilder: <T>(RouteSettings settings, WidgetBuilder builder) =>
           PageRouteBuilder<T>(

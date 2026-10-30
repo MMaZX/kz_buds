@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/battery_status.dart';
 import '../../domain/entities/link_state.dart';
 import '../providers/earbuds_providers.dart';
+import '../theme/kz_palette.dart';
 import '../widgets/battery_tile.dart';
 
 class DeviceHomePage extends ConsumerWidget {
@@ -15,7 +16,7 @@ class DeviceHomePage extends ConsumerWidget {
     final battery = ref.watch(batteryProvider);
 
     return ColoredBox(
-      color: const Color(0xFF000000),
+      color: KzPalette.ink950,
       child: Center(
         child: switch (connection) {
           AsyncData(value: LinkState.connected) => switch (battery) {

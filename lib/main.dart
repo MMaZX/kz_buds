@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
 import 'data/fake/fake_earbuds_adapter.dart';
-import 'presentation/pages/device_home_page.dart';
+import 'domain/capabilities/capability.dart';
+import 'presentation/pages/app_shell.dart';
 import 'presentation/providers/earbuds_providers.dart';
 import 'presentation/providers/theme_providers.dart';
 import 'presentation/providers/visual_settings_providers.dart';
@@ -15,7 +16,11 @@ void main() {
   registerKzLicenses();
   runApp(
     ProviderScope(
-      overrides: [earbudsPortProvider.overrideWithValue(FakeEarbudsAdapter())],
+      overrides: [
+        earbudsPortProvider.overrideWithValue(
+          FakeEarbudsAdapter(capabilities: {Capability.anc, Capability.eq}),
+        ),
+      ],
       child: const KzBudsApp(),
     ),
   );
@@ -44,7 +49,7 @@ class KzBudsApp extends ConsumerWidget {
         reduceTransparency: reduceTransparency,
         child: navigator!,
       ),
-      home: const DeviceHomePage(),
+      home: const AppShell(),
       pageRouteBuilder: <T>(RouteSettings settings, WidgetBuilder builder) =>
           PageRouteBuilder<T>(
             settings: settings,

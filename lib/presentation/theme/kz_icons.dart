@@ -32,6 +32,8 @@ abstract final class KzIcons {
   static const KzIconData settings = HugeIcons.strokeRoundedSettings02;
   static const KzIconData home = HugeIcons.strokeRoundedHome01;
   static const KzIconData power = HugeIcons.strokeRoundedPower;
+  static const KzIconData check = HugeIcons.strokeRoundedTick02;
+  static const KzIconData forward = HugeIcons.strokeRoundedArrowRight01;
 }
 
 class KzIcon extends StatelessWidget {

@@ -8,12 +8,17 @@ import '../../domain/entities/link_state.dart';
 import '../providers/earbuds_providers.dart';
 import '../theme/kz_glass.dart';
 import '../theme/kz_glass_theme.dart';
+import '../theme/kz_icons.dart';
 import '../theme/kz_metrics.dart';
 import '../theme/kz_theme.dart';
 import '../widgets/kz_anc_rings.dart';
 import '../widgets/kz_battery_indicator.dart';
 import '../widgets/kz_chip.dart';
 import '../widgets/kz_page.dart';
+import '../widgets/kz_pressable.dart';
+import 'anc_page.dart';
+import 'app_shell.dart';
+import 'kz_route.dart';
 
 class DeviceHomePage extends ConsumerWidget {
   const DeviceHomePage({super.key});
@@ -66,10 +71,13 @@ class DeviceHomePage extends ConsumerWidget {
                 _NoiseControlCard(
                   mode: mode,
                   onSelected: ref.read(earbudsPortProvider).setAncMode,
+                  onOpen: () =>
+                      Navigator.of(context)
+                          .push(kzRoute<void>(context, (_) => const AncPage())),
                 ),
               ],
             ],
-            const SizedBox(height: KzSpace.s32),
+            const SizedBox(height: AppShell.navClearance),
           ],
         ),
       ),
@@ -146,10 +154,15 @@ class _BatteryRow extends StatelessWidget {
 }
 
 class _NoiseControlCard extends StatelessWidget {
-  const _NoiseControlCard({required this.mode, required this.onSelected});
+  const _NoiseControlCard({
+    required this.mode,
+    required this.onSelected,
+    required this.onOpen,
+  });
 
   final AncMode mode;
   final ValueChanged<AncMode> onSelected;
+  final VoidCallback onOpen;
 
   static const _labels = {
     AncMode.noiseCancelling: 'ANC',
@@ -171,24 +184,33 @@ class _NoiseControlCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'NOISE CONTROL',
-                    style: theme.typography.overline.copyWith(
-                      color: scheme.mutedForeground,
+            KzPressable(
+              borderRadius: BorderRadius.circular(KzRadii.md),
+              semanticsLabel: 'Noise control details',
+              onPressed: onOpen,
+              child: ExcludeSemantics(
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'NOISE CONTROL',
+                        style: theme.typography.overline.copyWith(
+                          color: scheme.mutedForeground,
+                        ),
+                      ),
                     ),
-                  ),
+                    KzAncRings(
+                      mode: mode,
+                      size: 36,
+                      color: mode == AncMode.off
+                          ? scheme.mutedForeground
+                          : theme.colors.brand,
+                    ),
+                    const SizedBox(width: KzSpace.s8),
+                    KzIcon(KzIcons.forward, color: scheme.mutedForeground),
+                  ],
                 ),
-                KzAncRings(
-                  mode: mode,
-                  size: 36,
-                  color: mode == AncMode.off
-                      ? scheme.mutedForeground
-                      : theme.colors.brand,
-                ),
-              ],
+              ),
             ),
             const SizedBox(height: KzSpace.s12),
             Wrap(

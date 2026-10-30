@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-enum KzTab { home, eq }
+enum KzTab { home, eq, touch, settings }
 
 class SelectedTabNotifier extends Notifier<KzTab> {
   @override

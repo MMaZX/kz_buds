@@ -19,9 +19,25 @@ bool chipSelected(WidgetTester tester, String label) =>
 
 void main() {
   group('navigation shell', () {
-    testWidgets('no nav pill when only the home exists', (tester) async {
+    testWidgets('without capabilities the nav has Home and Settings', (
+      tester,
+    ) async {
       await pumpApp(tester, FakeEarbudsAdapter());
-      expect(find.byType(KzNavPill), findsNothing);
+      expect(find.byType(KzNavPill), findsOneWidget);
+      expect(find.bySemanticsLabel('Home'), findsOneWidget);
+      expect(find.bySemanticsLabel('Settings'), findsOneWidget);
+      expect(find.bySemanticsLabel('Equalizer'), findsNothing);
+      expect(find.bySemanticsLabel('Touch'), findsNothing);
+    });
+
+    testWidgets('the button remap capability adds a Touch destination', (
+      tester,
+    ) async {
+      await pumpApp(
+        tester,
+        FakeEarbudsAdapter(capabilities: {Capability.buttonRemap}),
+      );
+      expect(find.bySemanticsLabel('Touch'), findsOneWidget);
     });
 
     testWidgets('eq capability adds an EQ destination', (tester) async {

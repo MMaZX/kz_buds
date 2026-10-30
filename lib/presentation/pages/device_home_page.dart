@@ -6,6 +6,7 @@ import '../../domain/entities/anc_mode.dart';
 import '../../domain/entities/battery_status.dart';
 import '../../domain/entities/link_state.dart';
 import '../providers/earbuds_providers.dart';
+import '../providers/navigation_providers.dart';
 import '../theme/kz_glass.dart';
 import '../theme/kz_glass_theme.dart';
 import '../theme/kz_icons.dart';
@@ -16,8 +17,10 @@ import '../widgets/kz_battery_indicator.dart';
 import '../widgets/kz_chip.dart';
 import '../widgets/kz_page.dart';
 import '../widgets/kz_pressable.dart';
+import '../widgets/kz_round_button.dart';
 import 'anc_page.dart';
 import 'app_shell.dart';
+import 'find_page.dart';
 import 'kz_route.dart';
 
 class DeviceHomePage extends ConsumerWidget {
@@ -74,6 +77,36 @@ class DeviceHomePage extends ConsumerWidget {
                   onOpen: () =>
                       Navigator.of(context)
                           .push(kzRoute<void>(context, (_) => const AncPage())),
+                ),
+              ],
+              if (capabilities.contains(Capability.findBuds) ||
+                  capabilities.contains(Capability.buttonRemap)) ...[
+                const SizedBox(height: KzSpace.s24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (capabilities.contains(Capability.findBuds))
+                      KzRoundButton(
+                        icon: KzIcons.find,
+                        label: 'Find',
+                        semanticsLabel: 'Find my buds',
+                        onPressed: () => Navigator.of(
+                          context,
+                        ).push(kzRoute<void>(context, (_) => const FindPage())),
+                      ),
+                    if (capabilities.contains(Capability.findBuds) &&
+                        capabilities.contains(Capability.buttonRemap))
+                      const SizedBox(width: KzSpace.s24),
+                    if (capabilities.contains(Capability.buttonRemap))
+                      KzRoundButton(
+                        icon: KzIcons.tap,
+                        label: 'Touch',
+                        semanticsLabel: 'Open touch controls',
+                        onPressed: () => ref
+                            .read(selectedTabProvider.notifier)
+                            .select(KzTab.touch),
+                      ),
+                  ],
                 ),
               ],
             ],

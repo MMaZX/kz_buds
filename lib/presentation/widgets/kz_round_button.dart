@@ -10,6 +10,7 @@ class KzRoundButton extends StatelessWidget {
   const KzRoundButton({
     required this.icon,
     this.label,
+    this.semanticsLabel,
     this.onPressed,
     this.selected = false,
     super.key,
@@ -17,6 +18,9 @@ class KzRoundButton extends StatelessWidget {
 
   final KzIconData icon;
   final String? label;
+
+  /// Spoken label; defaults to [label].
+  final String? semanticsLabel;
   final VoidCallback? onPressed;
   final bool selected;
 
@@ -32,7 +36,7 @@ class KzRoundButton extends StatelessWidget {
       borderRadius: BorderRadius.circular(KzRadii.xl),
       onPressed: onPressed,
       selected: selected,
-      semanticsLabel: text,
+      semanticsLabel: semanticsLabel ?? text,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

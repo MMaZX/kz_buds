@@ -9,6 +9,8 @@ import '../theme/kz_metrics.dart';
 import '../widgets/kz_nav_pill.dart';
 import 'device_home_page.dart';
 import 'eq_page.dart';
+import 'settings_page.dart';
+import 'touch_page.dart';
 
 /// Hosts the top-level destinations and the floating nav. A destination
 /// exists only if the device reports its capability; with a single
@@ -26,6 +28,8 @@ class AppShell extends ConsumerWidget {
     final tabs = [
       KzTab.home,
       if (capabilities.contains(Capability.eq)) KzTab.eq,
+      if (capabilities.contains(Capability.buttonRemap)) KzTab.touch,
+      KzTab.settings,
     ];
     final selected = ref.watch(selectedTabProvider);
     final current = tabs.contains(selected) ? selected : KzTab.home;
@@ -33,6 +37,8 @@ class AppShell extends ConsumerWidget {
     final page = switch (current) {
       KzTab.home => const DeviceHomePage(),
       KzTab.eq => const EqPage(),
+      KzTab.touch => const TouchPage(),
+      KzTab.settings => const SettingsPage(),
     };
     if (tabs.length < 2) return page;
 
@@ -55,6 +61,14 @@ class AppShell extends ConsumerWidget {
                       KzTab.eq => const KzNavItem(
                         icon: KzIcons.eq,
                         label: 'Equalizer',
+                      ),
+                      KzTab.touch => const KzNavItem(
+                        icon: KzIcons.tap,
+                        label: 'Touch',
+                      ),
+                      KzTab.settings => const KzNavItem(
+                        icon: KzIcons.settings,
+                        label: 'Settings',
                       ),
                     },
                 ],

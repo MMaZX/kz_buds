@@ -1,0 +1,1 @@
+enum Bud { left, right }

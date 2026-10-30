@@ -3,6 +3,7 @@ import 'package:kz_buds/data/fake/fake_earbuds_adapter.dart';
 import 'package:kz_buds/domain/capabilities/capability.dart';
 import 'package:kz_buds/domain/entities/anc_mode.dart';
 import 'package:kz_buds/domain/entities/battery_status.dart';
+import 'package:kz_buds/domain/entities/bud.dart';
 import 'package:kz_buds/domain/entities/link_state.dart';
 
 void main() {
@@ -66,5 +67,26 @@ void main() {
     expect(events, [AncMode.off, AncMode.noiseCancelling, AncMode.ambient]);
     await sub.cancel();
     await fake.dispose();
+  });
+
+  group('find sound', () {
+    test('plays on one bud and stops', () async {
+      final fake = FakeEarbudsAdapter(capabilities: {Capability.findBuds});
+      expect(fake.findSoundBud, isNull);
+      await fake.playFindSound(Bud.right);
+      expect(fake.findSoundBud, Bud.right);
+      await fake.stopFindSound();
+      expect(fake.findSoundBud, isNull);
+      await fake.dispose();
+    });
+
+    test('requires the findBuds capability', () async {
+      final fake = FakeEarbudsAdapter(capabilities: {});
+      expect(
+        () => fake.playFindSound(Bud.left),
+        throwsA(isA<UnsupportedError>()),
+      );
+      await fake.dispose();
+    });
   });
 }

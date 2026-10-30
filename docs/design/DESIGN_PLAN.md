@@ -7,9 +7,9 @@ Riverpod ^3.4.3, Inter, dark + light modes, an original palette.
 
 ## Decisions (2026-10-29, user)
 
-Supersede the recommendations in sections 1, 3.1, 9 and 11 where they differ. Tracked in `odd/tasks/design-system.md`.
+Supersede the recommendations in sections 9 and 11 where they differ. Tracked in `odd/tasks/design-system.md`.
 
-1. Accent: **Signal Red** (`#FF4D3D` dark, `#D22A1E` light), not Copper. Glows are tinted from the accent. Critical battery and destructive actions always carry an icon and label (S13).
+1. Accent: **KZ Copper** (`#D9905F` dark, `#A25A2C` light), the plan's recommendation. (Signal Red was chosen first, then reverted by the user on 2026-10-29.) The accent never conveys state (S13).
 2. Healthy battery: neutral.
 3. Dot-matrix numerals (Doto): yes.
 4. Earbuds artwork: a `Placeholder` widget for now; renders come at the end.

@@ -5,6 +5,16 @@ Scope: Phase 1 visual system (PLAN.md section 6). Presentation layer only, under
 Constraints: AGENTS.md rule 9 (`widgets.dart` only, `Scaffold` the only Material widget), `shadcn_ui` ^0.57.3,
 Riverpod ^3.4.3, Inter, dark + light modes, an original palette.
 
+## Decisions (2026-10-29, user)
+
+Supersede the recommendations in sections 1, 3.1, 9 and 11 where they differ. Tracked in `odd/tasks/design-system.md`.
+
+1. Accent: **Signal Red** (`#FF4D3D` dark, `#D22A1E` light), not Copper. Glows are tinted from the accent. Critical battery and destructive actions always carry an icon and label (S13).
+2. Healthy battery: neutral.
+3. Dot-matrix numerals (Doto): yes.
+4. Earbuds artwork: a `Placeholder` widget for now; renders come at the end.
+5. Theme options: system, light, dark. Default: system.
+
 Legend: **VERIFIED** means checked in source or on pub.dev during this research. **UNVERIFIED** means not checked
 here; a spec or spike in section 10 covers it.
 

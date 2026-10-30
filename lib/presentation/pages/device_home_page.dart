@@ -7,13 +7,12 @@ import '../../domain/entities/battery_status.dart';
 import '../../domain/entities/link_state.dart';
 import '../providers/earbuds_providers.dart';
 import '../providers/navigation_providers.dart';
-import '../theme/kz_glass.dart';
-import '../theme/kz_glass_theme.dart';
 import '../theme/kz_icons.dart';
 import '../theme/kz_metrics.dart';
 import '../theme/kz_theme.dart';
 import '../widgets/kz_anc_rings.dart';
 import '../widgets/kz_battery_indicator.dart';
+import '../widgets/kz_card.dart';
 import '../widgets/kz_chip.dart';
 import '../widgets/kz_page.dart';
 import '../widgets/kz_pressable.dart';
@@ -29,12 +28,6 @@ class DeviceHomePage extends ConsumerWidget {
   static const _heroHeight = 220.0;
   static const _dimmedHeroOpacity = 0.4;
 
-  double _glowScale(AncMode mode) => switch (mode) {
-    AncMode.noiseCancelling => 0.85,
-    AncMode.ambient => 1.15,
-    AncMode.off => 1,
-  };
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = KzTheme.of(context);
@@ -46,7 +39,6 @@ class DeviceHomePage extends ConsumerWidget {
     final connected = link.value == LinkState.connected;
 
     return KzPage(
-      glowScale: _glowScale(mode),
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -208,58 +200,54 @@ class _NoiseControlCard extends StatelessWidget {
     final theme = KzTheme.of(context);
     final scheme = theme.scheme;
 
-    return KzGlass(
-      level: KzGlassLevel.panel,
-      borderRadius: BorderRadius.circular(KzRadii.xl),
-      child: Padding(
-        padding: const EdgeInsets.all(KzSpace.s16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            KzPressable(
-              borderRadius: BorderRadius.circular(KzRadii.md),
-              semanticsLabel: 'Noise control details',
-              onPressed: onOpen,
-              child: ExcludeSemantics(
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'NOISE CONTROL',
-                        style: theme.typography.overline.copyWith(
-                          color: scheme.mutedForeground,
-                        ),
+    return KzCard(
+      radius: KzRadii.xl,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          KzPressable(
+            borderRadius: BorderRadius.circular(KzRadii.md),
+            semanticsLabel: 'Noise control details',
+            onPressed: onOpen,
+            child: ExcludeSemantics(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'NOISE CONTROL',
+                      style: theme.typography.overline.copyWith(
+                        color: scheme.mutedForeground,
                       ),
                     ),
-                    KzAncRings(
-                      mode: mode,
-                      size: 36,
-                      color: mode == AncMode.off
-                          ? scheme.mutedForeground
-                          : theme.colors.brand,
-                    ),
-                    const SizedBox(width: KzSpace.s8),
-                    KzIcon(KzIcons.forward, color: scheme.mutedForeground),
-                  ],
-                ),
+                  ),
+                  KzAncRings(
+                    mode: mode,
+                    size: 36,
+                    color: mode == AncMode.off
+                        ? scheme.mutedForeground
+                        : theme.colors.brand,
+                  ),
+                  const SizedBox(width: KzSpace.s8),
+                  KzIcon(KzIcons.forward, color: scheme.mutedForeground),
+                ],
               ),
             ),
-            const SizedBox(height: KzSpace.s12),
-            Wrap(
-              spacing: KzSpace.s8,
-              runSpacing: KzSpace.s8,
-              children: [
-                for (final entry in _labels.entries)
-                  KzChip(
-                    label: entry.value,
-                    selected: mode == entry.key,
-                    onPressed: () => onSelected(entry.key),
-                  ),
-              ],
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: KzSpace.s12),
+          Wrap(
+            spacing: KzSpace.s8,
+            runSpacing: KzSpace.s8,
+            children: [
+              for (final entry in _labels.entries)
+                KzChip(
+                  label: entry.value,
+                  selected: mode == entry.key,
+                  onPressed: () => onSelected(entry.key),
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }

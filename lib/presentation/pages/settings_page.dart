@@ -22,8 +22,8 @@ class SettingsPage extends ConsumerWidget {
 
   static const _themeLabels = {
     KzThemePreference.system: 'System',
-    KzThemePreference.light: 'Light',
-    KzThemePreference.dark: 'Dark',
+    KzThemePreference.dark: 'Ink',
+    KzThemePreference.light: 'Paper',
   };
 
   @override

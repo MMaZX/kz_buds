@@ -51,7 +51,7 @@ void main() {
 
   testWidgets('takes color and size from the IconTheme', (tester) async {
     await pumpKz(tester, const KzIcon(KzIcons.tap));
-    expect(hugeIcon(tester).color, KzPalette.paper);
+    expect(hugeIcon(tester).color, KzPalette.inkText);
     expect(hugeIcon(tester).size, 20);
   });
 

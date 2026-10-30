@@ -30,13 +30,13 @@ void main() {
         .read(themePreferenceProvider.notifier)
         .set(KzThemePreference.dark);
     await tester.pumpAndSettle();
-    expect(ShadTheme.of(context).colorScheme.background, KzPalette.ink950);
+    expect(ShadTheme.of(context).colorScheme.background, KzPalette.inkBg);
 
     container
         .read(themePreferenceProvider.notifier)
         .set(KzThemePreference.light);
     await tester.pumpAndSettle();
-    expect(ShadTheme.of(context).colorScheme.background, KzPalette.mist50);
+    expect(ShadTheme.of(context).colorScheme.background, KzPalette.paperBg);
   });
 
   testWidgets('the reduce transparency setting reaches KzTheme', (

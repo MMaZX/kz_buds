@@ -5,7 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kz_buds/presentation/theme/kz_glass.dart';
 import 'package:kz_buds/presentation/theme/kz_glass_theme.dart';
 import 'package:kz_buds/presentation/theme/kz_palette.dart';
-import 'package:kz_buds/presentation/theme/kz_theme.dart';
 import 'package:kz_buds/presentation/theme/kz_theme_preference.dart';
 
 import '../../support/pump_kz.dart';
@@ -59,7 +58,7 @@ void main() {
       await pumpKz(tester, glass(KzGlassLevel.panel), reduceTransparency: true);
       expect(find.byType(BackdropFilter), findsNothing);
       expect(find.text('inside'), findsOneWidget);
-      expect(decoration(tester).color, KzPalette.ink900);
+      expect(decoration(tester).color, KzPalette.inkPanel);
     });
 
     testWidgets('fallback fills follow the plan per level', (tester) async {
@@ -68,13 +67,13 @@ void main() {
         glass(KzGlassLevel.subtle),
         reduceTransparency: true,
       );
-      expect(decoration(tester).color, KzPalette.ink800);
+      expect(decoration(tester).color, KzPalette.inkMass);
       await pumpKz(
         tester,
         glass(KzGlassLevel.chrome),
         reduceTransparency: true,
       );
-      expect(decoration(tester).color, KzPalette.ink850);
+      expect(decoration(tester).color, KzPalette.inkMass);
     });
 
     testWidgets('high contrast forces the fallback', (tester) async {
@@ -96,12 +95,5 @@ void main() {
       preference: KzThemePreference.light,
     );
     expect(decoration(tester).color, KzPalette.glassChromeLight);
-  });
-
-  testWidgets('KzTheme exposes the ambient colors', (tester) async {
-    await pumpKz(tester, const Text('x'));
-    final theme = KzTheme.of(tester.element(find.text('x')));
-    expect(theme.ambient.bottom, KzPalette.ink950);
-    expect(theme.ambient.copperGlow, KzPalette.ambientCopperGlowDark);
   });
 }

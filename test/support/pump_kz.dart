@@ -14,7 +14,7 @@ Future<void> pumpKz(
 }) async {
   await tester.pumpWidget(
     WidgetsApp(
-      color: KzPalette.ink950,
+      color: KzPalette.inkBg,
       localizationsDelegates: const [
         GlobalShadLocalizations.delegate,
         DefaultWidgetsLocalizations.delegate,

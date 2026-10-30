@@ -16,7 +16,7 @@ class _Probe extends StatelessWidget {
 }
 
 Widget app(KzThemePreference preference) => WidgetsApp(
-  color: KzPalette.ink950,
+  color: KzPalette.inkBg,
   localizationsDelegates: const [
     GlobalShadLocalizations.delegate,
     DefaultWidgetsLocalizations.delegate,
@@ -46,11 +46,11 @@ void main() {
   ) async {
     await tester.pumpWidget(app(KzThemePreference.dark));
     await tester.pumpAndSettle();
-    expect(background(tester), KzPalette.ink950);
+    expect(background(tester), KzPalette.inkBg);
 
     await tester.pumpWidget(app(KzThemePreference.light));
     await tester.pumpAndSettle();
-    expect(background(tester), KzPalette.mist50);
+    expect(background(tester), KzPalette.paperBg);
   });
 
   testWidgets('system follows the platform brightness', (tester) async {
@@ -58,11 +58,11 @@ void main() {
     dispatcher.platformBrightnessTestValue = Brightness.light;
     await tester.pumpWidget(app(KzThemePreference.system));
     await tester.pumpAndSettle();
-    expect(background(tester), KzPalette.mist50);
+    expect(background(tester), KzPalette.paperBg);
 
     dispatcher.platformBrightnessTestValue = Brightness.dark;
     await tester.pumpAndSettle();
-    expect(background(tester), KzPalette.ink950);
+    expect(background(tester), KzPalette.inkBg);
   });
 
   testWidgets('light and dark override the platform brightness', (
@@ -71,7 +71,7 @@ void main() {
     tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
     await tester.pumpWidget(app(KzThemePreference.light));
     await tester.pumpAndSettle();
-    expect(background(tester), KzPalette.mist50);
+    expect(background(tester), KzPalette.paperBg);
   });
 
   testWidgets('switching animates over 200 ms', (tester) async {
@@ -81,10 +81,10 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
     final mid = background(tester);
-    expect(mid, isNot(KzPalette.ink950));
-    expect(mid, isNot(KzPalette.mist50));
+    expect(mid, isNot(KzPalette.inkBg));
+    expect(mid, isNot(KzPalette.paperBg));
     await tester.pump(const Duration(milliseconds: 150));
-    expect(background(tester), KzPalette.mist50);
+    expect(background(tester), KzPalette.paperBg);
   });
 
   testWidgets('switching is instant when animations are disabled', (
@@ -97,7 +97,7 @@ void main() {
     await tester.pumpWidget(app(KzThemePreference.light));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 1));
-    expect(background(tester), KzPalette.mist50);
+    expect(background(tester), KzPalette.paperBg);
   });
 
   testWidgets('provides KzTheme, text style, icon theme and toaster', (
@@ -111,8 +111,8 @@ void main() {
     final style = DefaultTextStyle.of(context).style;
     expect(style.fontFamily, 'Inter');
     expect(style.fontSize, 15);
-    expect(style.color, KzPalette.paper);
-    expect(IconTheme.of(context).color, KzPalette.paper);
+    expect(style.color, KzPalette.inkText);
+    expect(IconTheme.of(context).color, KzPalette.inkText);
     expect(() => ShadToaster.of(context), returnsNormally);
   });
 

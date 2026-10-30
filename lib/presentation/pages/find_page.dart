@@ -4,11 +4,10 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../domain/entities/bud.dart';
 import '../providers/find_providers.dart';
-import '../theme/kz_glass.dart';
-import '../theme/kz_glass_theme.dart';
 import '../theme/kz_icons.dart';
 import '../theme/kz_metrics.dart';
 import '../theme/kz_theme.dart';
+import '../widgets/kz_card.dart';
 import '../widgets/kz_page.dart';
 import '../widgets/kz_page_header.dart';
 import '../widgets/kz_round_button.dart';
@@ -33,36 +32,33 @@ class FindPage extends ConsumerWidget {
               onBack: () => Navigator.of(context).maybePop(),
             ),
             const SizedBox(height: KzSpace.s32),
-            KzGlass(
-              level: KzGlassLevel.panel,
-              borderRadius: BorderRadius.circular(KzRadii.xl),
-              child: Padding(
-                padding: const EdgeInsets.all(KzSpace.s24),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        for (final bud in Bud.values)
-                          KzRoundButton(
-                            icon: KzIcons.ear,
-                            label: bud == Bud.left ? 'Left' : 'Right',
-                            semanticsLabel: 'Play on ${bud.name} earbud',
-                            selected: playing == bud,
-                            onPressed: () => notifier.play(bud),
-                          ),
-                      ],
-                    ),
-                    if (playing != null) ...[
-                      const SizedBox(height: KzSpace.s24),
-                      ShadButton.destructive(
-                        onPressed: notifier.stop,
-                        leading: const KzIcon(KzIcons.close, size: 16),
-                        child: const Text('Stop'),
-                      ),
+            KzCard(
+              radius: KzRadii.xl,
+              padding: const EdgeInsets.all(KzSpace.s24),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      for (final bud in Bud.values)
+                        KzRoundButton(
+                          icon: KzIcons.ear,
+                          label: bud == Bud.left ? 'Left' : 'Right',
+                          semanticsLabel: 'Play on ${bud.name} earbud',
+                          selected: playing == bud,
+                          onPressed: () => notifier.play(bud),
+                        ),
                     ],
+                  ),
+                  if (playing != null) ...[
+                    const SizedBox(height: KzSpace.s24),
+                    ShadButton.destructive(
+                      onPressed: notifier.stop,
+                      leading: const KzIcon(KzIcons.close, size: 16),
+                      child: const Text('Stop'),
+                    ),
                   ],
-                ),
+                ],
               ),
             ),
             const SizedBox(height: KzSpace.s16),

@@ -13,7 +13,6 @@ class KzThemeData {
     required this.scheme,
     required this.typography,
     required this.glass,
-    required this.ambient,
   });
 
   const KzThemeData.dark()
@@ -22,7 +21,6 @@ class KzThemeData {
         scheme: const KzColorScheme.dark(),
         typography: const KzTypography(),
         glass: const KzGlassTheme.dark(),
-        ambient: const KzAmbientTheme.dark(),
       );
 
   const KzThemeData.light()
@@ -31,14 +29,12 @@ class KzThemeData {
         scheme: const KzColorScheme.light(),
         typography: const KzTypography(),
         glass: const KzGlassTheme.light(),
-        ambient: const KzAmbientTheme.light(),
       );
 
   final Brightness brightness;
   final ShadColorScheme scheme;
   final KzTypography typography;
   final KzGlassTheme glass;
-  final KzAmbientTheme ambient;
 
   KzColors get colors => KzColors(scheme);
 

@@ -5,7 +5,6 @@ import 'package:kz_buds/domain/capabilities/capability.dart';
 import 'package:kz_buds/domain/entities/anc_mode.dart';
 import 'package:kz_buds/domain/entities/battery_status.dart';
 import 'package:kz_buds/domain/entities/link_state.dart';
-import 'package:kz_buds/presentation/theme/kz_ambient_background.dart';
 import 'package:kz_buds/presentation/theme/kz_theme_preference.dart';
 import 'package:kz_buds/presentation/widgets/kz_chip.dart';
 
@@ -88,20 +87,23 @@ void main() {
     });
   });
 
-  testWidgets('the ambient glow follows the anc mode', (tester) async {
+  testWidgets('the page background is flat: no gradient anywhere', (
+    tester,
+  ) async {
     await pumpApp(tester, FakeEarbudsAdapter());
-    double glow() => tester
-        .widget<KzAmbientBackground>(find.byType(KzAmbientBackground))
-        .glowScale;
-    expect(glow(), 1);
-
-    await tester.tap(find.widgetWithText(KzChip, 'ANC'));
-    await tester.pumpAndSettle();
-    expect(glow(), 0.85);
-
-    await tester.tap(find.widgetWithText(KzChip, 'Ambient'));
-    await tester.pumpAndSettle();
-    expect(glow(), 1.15);
+    final gradients = find.byWidgetPredicate(
+      (w) =>
+          w is DecoratedBox && (w.decoration as BoxDecoration).gradient != null,
+    );
+    expect(gradients, findsNothing);
+    expect(
+      find.byType(CustomPaint).evaluate().where((e) {
+        final paint = e.widget as CustomPaint;
+        return paint.painter != null &&
+            paint.painter.runtimeType.toString().contains('Ambient');
+      }),
+      isEmpty,
+    );
   });
 
   group('link state', () {

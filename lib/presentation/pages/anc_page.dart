@@ -28,11 +28,6 @@ class AncPage extends ConsumerWidget {
     final port = ref.read(earbudsPortProvider);
 
     return KzPage(
-      glowScale: switch (mode) {
-        AncMode.noiseCancelling => 0.85,
-        AncMode.ambient => 1.15,
-        AncMode.off => 1,
-      },
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

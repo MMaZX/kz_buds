@@ -70,7 +70,7 @@ void main() {
         matching: find.byWidgetPredicate(
           (w) =>
               w is DecoratedBox &&
-              (w.decoration as BoxDecoration).color == KzPalette.paper,
+              (w.decoration as BoxDecoration).color == KzPalette.inkText,
         ),
       );
       expect(filled, findsOneWidget);
@@ -152,7 +152,7 @@ void main() {
       await pumpKz(tester, const KzBatteryIndicator(label: 'R', level: 21));
       expect(find.byType(HugeIcon), findsNothing);
       final text = tester.widget<Text>(find.text('21%'));
-      expect(text.style!.color, KzPalette.paper);
+      expect(text.style!.color, KzPalette.inkText);
     });
 
     testWidgets('charging shows the charging icon in success color', (
@@ -246,7 +246,7 @@ void main() {
   });
 
   group('KzPage', () {
-    testWidgets('shows its child over the ambient background', (tester) async {
+    testWidgets('shows its child', (tester) async {
       await pumpKz(
         tester,
         const SizedBox(

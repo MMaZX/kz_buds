@@ -16,11 +16,9 @@ class KzMotion {
   Duration get fast => _d(150);
   Duration get base => _d(200);
   Duration get slow => _d(320);
-  Duration get ambient => _d(480);
 
   static const Curve pressCurve = Curves.easeOut;
   static const Curve fastCurve = Curves.easeOutCubic;
   static const Curve baseCurve = Curves.easeInOutCubic;
   static const Curve slowCurve = Cubic(0.2, 0, 0, 1);
-  static const Curve ambientCurve = Curves.easeInOutSine;
 }

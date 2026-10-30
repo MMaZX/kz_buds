@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import '../theme/kz_metrics.dart';
 import '../theme/kz_theme.dart';
+import 'kz_card.dart';
 
 /// Overline header over an opaque card. Not glass: rows and settings stay
 /// opaque so the blur budget goes to the surfaces that float.
@@ -27,17 +28,7 @@ class KzSection extends StatelessWidget {
           ),
         ),
         const SizedBox(height: KzSpace.s8),
-        DecoratedBox(
-          decoration: BoxDecoration(
-            color: scheme.card,
-            borderRadius: BorderRadius.circular(KzRadii.lg),
-            border: Border.all(color: scheme.border, width: KzStroke.hairline),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(KzSpace.s16),
-            child: child,
-          ),
-        ),
+        KzCard(child: child),
       ],
     );
   }

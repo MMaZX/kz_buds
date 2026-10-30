@@ -36,12 +36,12 @@ class KzGlassTheme {
         subtle: const KzGlassLevelStyle(
           fill: KzPalette.glassSubtleDark,
           sigma: 12,
-          fallbackFill: KzPalette.ink800,
+          fallbackFill: KzPalette.inkMass,
         ),
         panel: const KzGlassLevelStyle(
           fill: KzPalette.glassPanelDark,
           sigma: 24,
-          fallbackFill: KzPalette.ink900,
+          fallbackFill: KzPalette.inkPanel,
           fallbackShadows: [
             BoxShadow(
               color: KzPalette.shadowMdDark,
@@ -53,7 +53,7 @@ class KzGlassTheme {
         chrome: const KzGlassLevelStyle(
           fill: KzPalette.glassChromeDark,
           sigma: 32,
-          fallbackFill: KzPalette.ink850,
+          fallbackFill: KzPalette.inkMass,
           fallbackShadows: [
             BoxShadow(
               color: KzPalette.shadowLgDark,
@@ -71,12 +71,12 @@ class KzGlassTheme {
         subtle: const KzGlassLevelStyle(
           fill: KzPalette.glassSubtleLight,
           sigma: 12,
-          fallbackFill: KzPalette.mist100,
+          fallbackFill: KzPalette.paperMass,
         ),
         panel: const KzGlassLevelStyle(
           fill: KzPalette.glassPanelLight,
           sigma: 24,
-          fallbackFill: KzPalette.white,
+          fallbackFill: KzPalette.paperPanel,
           fallbackShadows: [
             BoxShadow(
               color: KzPalette.shadowMdLight,
@@ -88,7 +88,7 @@ class KzGlassTheme {
         chrome: const KzGlassLevelStyle(
           fill: KzPalette.glassChromeLight,
           sigma: 32,
-          fallbackFill: KzPalette.white,
+          fallbackFill: KzPalette.paperElevated,
           fallbackShadows: [
             BoxShadow(
               color: KzPalette.shadowLgLight,
@@ -110,35 +110,4 @@ class KzGlassTheme {
     KzGlassLevel.panel => panel,
     KzGlassLevel.chrome => chrome,
   };
-}
-
-/// Colors of the ambient field that glass sits on.
-class KzAmbientTheme {
-  const KzAmbientTheme({
-    required this.top,
-    required this.bottom,
-    required this.copperGlow,
-    required this.steelGlow,
-  });
-
-  const KzAmbientTheme.dark()
-    : this(
-        top: KzPalette.ink850,
-        bottom: KzPalette.ink950,
-        copperGlow: KzPalette.ambientCopperGlowDark,
-        steelGlow: KzPalette.ambientSteelGlowDark,
-      );
-
-  const KzAmbientTheme.light()
-    : this(
-        top: KzPalette.ambientTopLight,
-        bottom: KzPalette.mist100,
-        copperGlow: KzPalette.ambientCopperGlowLight,
-        steelGlow: KzPalette.ambientSteelGlowLight,
-      );
-
-  final Color top;
-  final Color bottom;
-  final Color copperGlow;
-  final Color steelGlow;
 }

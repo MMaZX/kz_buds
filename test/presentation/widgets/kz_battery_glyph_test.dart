@@ -36,7 +36,7 @@ void main() {
     await pumpKz(tester, const KzBatteryGlyph(level: 20));
     expect(painter(tester).fill, KzPalette.criticalDark);
     await pumpKz(tester, const KzBatteryGlyph(level: 21));
-    expect(painter(tester).fill, KzPalette.paper);
+    expect(painter(tester).fill, KzPalette.inkText);
   });
 
   testWidgets('charging uses the success color and a bolt', (tester) async {

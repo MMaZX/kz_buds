@@ -26,14 +26,14 @@ void main() {
   ) async {
     final container = await pumpApp(tester, FakeEarbudsAdapter());
     await openSettings(tester);
-    expect(chipSelected(tester, 'Dark'), isTrue);
+    expect(chipSelected(tester, 'Ink'), isTrue);
 
-    await tester.tap(find.widgetWithText(KzChip, 'Light'));
+    await tester.tap(find.widgetWithText(KzChip, 'Paper'));
     await tester.pumpAndSettle();
     expect(container.read(themePreferenceProvider), KzThemePreference.light);
-    expect(chipSelected(tester, 'Light'), isTrue);
+    expect(chipSelected(tester, 'Paper'), isTrue);
     final context = tester.element(find.text('Settings').first);
-    expect(ShadTheme.of(context).colorScheme.background, KzPalette.mist50);
+    expect(ShadTheme.of(context).colorScheme.background, KzPalette.paperBg);
 
     await tester.tap(find.widgetWithText(KzChip, 'System'));
     await tester.pumpAndSettle();
@@ -44,8 +44,8 @@ void main() {
     await pumpApp(tester, FakeEarbudsAdapter());
     await openSettings(tester);
     expect(find.widgetWithText(KzChip, 'System'), findsOneWidget);
-    expect(find.widgetWithText(KzChip, 'Light'), findsOneWidget);
-    expect(find.widgetWithText(KzChip, 'Dark'), findsOneWidget);
+    expect(find.widgetWithText(KzChip, 'Paper'), findsOneWidget);
+    expect(find.widgetWithText(KzChip, 'Ink'), findsOneWidget);
   });
 
   testWidgets('the reduce transparency switch updates the setting', (

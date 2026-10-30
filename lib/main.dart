@@ -39,7 +39,7 @@ class KzBudsApp extends ConsumerWidget {
     return WidgetsApp(
       title: 'KZ Buds',
       debugShowCheckedModeBanner: false,
-      color: KzPalette.ink950,
+      color: KzPalette.inkBg,
       localizationsDelegates: const [
         GlobalShadLocalizations.delegate,
         DefaultWidgetsLocalizations.delegate,

@@ -16,9 +16,10 @@ void main() {
   const light = KzColorScheme.light();
 
   test('dark and light pin the key tokens', () {
-    expect(dark.background, const Color(0xFF050709));
+    expect(dark.background, const Color(0xFF17171A));
+    expect(light.background, const Color(0xFFEFECE5));
     expect(dark.ring, const Color(0xFFD9905F));
-    expect(light.ring, const Color(0xFFA25A2C));
+    expect(light.ring, const Color(0xFF9A5226));
     expect(dark.primary, dark.foreground);
     expect(light.primary, light.foreground);
   });

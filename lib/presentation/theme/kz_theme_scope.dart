@@ -2,6 +2,8 @@ import 'package:flutter/widgets.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
 import 'kz_motion.dart';
+import 'kz_palette.dart';
+import 'kz_paper_background.dart';
 import 'kz_theme.dart';
 import 'kz_theme_preference.dart';
 
@@ -51,7 +53,12 @@ class KzThemeScope extends StatelessWidget {
               style: data.typography.body.copyWith(color: foreground),
               child: IconTheme(
                 data: IconThemeData(size: 20, color: foreground),
-                child: ShadAppBuilder(child: child),
+                child: KzPaperBackground(
+                  child: ShadAppBuilder(
+                    backgroundColor: KzPalette.transparent,
+                    child: child,
+                  ),
+                ),
               ),
             ),
           ),

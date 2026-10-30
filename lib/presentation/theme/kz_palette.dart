@@ -2,29 +2,32 @@ import 'package:flutter/widgets.dart';
 
 /// The only file in `lib/` that may contain hex color literals.
 ///
-/// Two flat modes, no gradients: `ink` (dark) and `paper` (light), with
-/// slightly warm neutrals.
+/// Two flat modes, no gradients: `ink` (dark) and `paper` (light), in neutral
+/// grays.
 abstract final class KzPalette {
-  // Ink (dark).
-  static const inkBg = Color(0xFF17171A);
-  static const inkPanel = Color(0xFF1E1E22);
-  static const inkMass = Color(0xFF26262B);
-  static const inkLine = Color(0xFF35353D);
-  static const inkInput = Color(0xFF706F77);
-  static const inkFaint = Color(0xFF908F96);
-  static const inkText = Color(0xFFEAE8EE);
+  // Ink (dark): neutral grays, R = G = B.
+  static const inkBg = Color(0xFF171717);
+  static const inkPanel = Color(0xFF1E1E1E);
+  static const inkMass = Color(0xFF262626);
+  static const inkLine = Color(0xFF353535);
+  static const inkGrid = Color(0xFF202020);
+  static const inkInput = Color(0xFF707070);
+  static const inkFaint = Color(0xFF909090);
+  static const inkText = Color(0xFFEDEDED);
 
-  // Paper (light).
-  static const paperBg = Color(0xFFEFECE5);
-  static const paperElevated = Color(0xFFF5F3EE);
-  static const paperPanel = Color(0xFFE7E3DA);
-  static const paperMass = Color(0xFFDDD8CC);
-  static const paperHover = Color(0xFFE2DED4);
-  static const paperLine = Color(0xFFCBC5B6);
-  static const paperInput = Color(0xFF7D796A);
-  static const paperDim = Color(0xFF55534A);
-  static const paperText = Color(0xFF15140F);
+  // Paper (light): neutral grays, R = G = B.
+  static const paperBg = Color(0xFFF5F5F5);
+  static const paperElevated = Color(0xFFFFFFFF);
+  static const paperPanel = Color(0xFFECECEC);
+  static const paperMass = Color(0xFFE0E0E0);
+  static const paperHover = Color(0xFFE6E6E6);
+  static const paperLine = Color(0xFFCCCCCC);
+  static const paperGrid = Color(0xFFE8E8E8);
+  static const paperInput = Color(0xFF7A7A7A);
+  static const paperDim = Color(0xFF555555);
+  static const paperText = Color(0xFF111111);
   static const white = Color(0xFFFFFFFF);
+  static const transparent = Color(0x00000000);
 
   // KZ Copper accent.
   static const copperDark = Color(0xFFD9905F);
@@ -42,13 +45,13 @@ abstract final class KzPalette {
 
   // Glass, only for surfaces that float over scrolling content (alpha baked in).
   static const glassSubtleDark = Color(0x14FFFFFF);
-  static const glassPanelDark = Color(0x991E1E22);
-  static const glassChromeDark = Color(0xB826262B);
+  static const glassPanelDark = Color(0x991E1E1E);
+  static const glassChromeDark = Color(0xB8262626);
   static const glassBorderDark = Color(0x1AFFFFFF);
   static const glassHighlightDark = Color(0x0FFFFFFF);
   static const glassSubtleLight = Color(0x8CFFFFFF);
-  static const glassPanelLight = Color(0x9EF5F3EE);
-  static const glassChromeLight = Color(0xCCF5F3EE);
+  static const glassPanelLight = Color(0x9EFFFFFF);
+  static const glassChromeLight = Color(0xCCFFFFFF);
   static const glassBorderLight = Color(0xB3FFFFFF);
   static const glassHighlightLight = Color(0xE6FFFFFF);
 

@@ -16,12 +16,34 @@ void main() {
   const light = KzColorScheme.light();
 
   test('dark and light pin the key tokens', () {
-    expect(dark.background, const Color(0xFF17171A));
-    expect(light.background, const Color(0xFFEFECE5));
+    expect(dark.background, const Color(0xFF171717));
+    expect(light.background, const Color(0xFFF5F5F5));
     expect(dark.ring, const Color(0xFFD9905F));
     expect(light.ring, const Color(0xFF9A5226));
     expect(dark.primary, dark.foreground);
     expect(light.primary, light.foreground);
+  });
+
+  test('surfaces are truly neutral grays (R = G = B)', () {
+    for (final s in [dark, light]) {
+      for (final color in [
+        s.background,
+        s.foreground,
+        s.card,
+        s.popover,
+        s.secondary,
+        s.muted,
+        s.mutedForeground,
+        s.accent,
+        s.border,
+        s.input,
+      ]) {
+        final r = (color.r * 255).round();
+        final g = (color.g * 255).round();
+        final b = (color.b * 255).round();
+        expect(r == g && g == b, isTrue, reason: '$color is tinted');
+      }
+    }
   });
 
   for (final entry in {'dark': dark, 'light': light}.entries) {

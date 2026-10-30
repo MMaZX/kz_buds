@@ -12,11 +12,13 @@ class KzThemeScope extends StatelessWidget {
   const KzThemeScope({
     required this.preference,
     required this.child,
+    this.reduceTransparency = false,
     super.key,
   });
 
   final KzThemePreference preference;
   final Widget child;
+  final bool reduceTransparency;
 
   static const _dark = KzThemeData.dark();
   static const _light = KzThemeData.light();
@@ -42,6 +44,7 @@ class KzThemeScope extends StatelessWidget {
       curve: KzMotion.baseCurve,
       child: KzTheme(
         data: data,
+        reduceTransparency: reduceTransparency,
         child: ShadMouseAreaSurface(
           child: ShadMouseCursorProvider(
             child: DefaultTextStyle(

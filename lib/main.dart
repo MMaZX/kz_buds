@@ -6,6 +6,7 @@ import 'data/fake/fake_earbuds_adapter.dart';
 import 'presentation/pages/device_home_page.dart';
 import 'presentation/providers/earbuds_providers.dart';
 import 'presentation/providers/theme_providers.dart';
+import 'presentation/providers/visual_settings_providers.dart';
 import 'presentation/theme/kz_licenses.dart';
 import 'presentation/theme/kz_palette.dart';
 import 'presentation/theme/kz_theme_scope.dart';
@@ -26,6 +27,9 @@ class KzBudsApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final preference = ref.watch(themePreferenceProvider);
+    final reduceTransparency = ref.watch(
+      visualSettingsProvider.select((s) => s.reduceTransparency),
+    );
 
     return WidgetsApp(
       title: 'KZ Buds',
@@ -34,8 +38,11 @@ class KzBudsApp extends ConsumerWidget {
         GlobalShadLocalizations.delegate,
         DefaultWidgetsLocalizations.delegate,
       ],
-      builder: (context, navigator) =>
-          KzThemeScope(preference: preference, child: navigator!),
+      builder: (context, navigator) => KzThemeScope(
+        preference: preference,
+        reduceTransparency: reduceTransparency,
+        child: navigator!,
+      ),
       home: const DeviceHomePage(),
       pageRouteBuilder: <T>(RouteSettings settings, WidgetBuilder builder) =>
           PageRouteBuilder<T>(

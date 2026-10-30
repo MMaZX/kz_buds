@@ -36,4 +36,31 @@ abstract final class KzPalette {
   static const successLight = Color(0xFF177A42);
   static const warningDark = Color(0xFFF2C14E);
   static const warningLight = Color(0xFF8A5A00);
+
+  static const transparent = Color(0x00000000);
+
+  // Glass fills, borders and highlights (alpha baked in).
+  static const glassSubtleDark = Color(0x14FFFFFF);
+  static const glassPanelDark = Color(0x990E1012);
+  static const glassChromeDark = Color(0xB817191B);
+  static const glassBorderDark = Color(0x1AFFFFFF);
+  static const glassHighlightDark = Color(0x0FFFFFFF);
+  static const glassSubtleLight = Color(0x8CFFFFFF);
+  static const glassPanelLight = Color(0x9EFFFFFF);
+  static const glassChromeLight = Color(0xCCFFFFFF);
+  static const glassBorderLight = Color(0xB3FFFFFF);
+  static const glassHighlightLight = Color(0xE6FFFFFF);
+
+  // Shadows.
+  static const shadowMdDark = Color(0x66000000);
+  static const shadowLgDark = Color(0x80000000);
+  static const shadowMdLight = Color(0x140B0D0F);
+  static const shadowLgLight = Color(0x1F0B0D0F);
+
+  // Ambient background.
+  static const ambientTopLight = Color(0xFFF7F9F8);
+  static const ambientCopperGlowDark = Color(0x29C9835A);
+  static const ambientSteelGlowDark = Color(0x405B6B80);
+  static const ambientCopperGlowLight = Color(0x59E7B38F);
+  static const ambientSteelGlowLight = Color(0x73BFCADB);
 }

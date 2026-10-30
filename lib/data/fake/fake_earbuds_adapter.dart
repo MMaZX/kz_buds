@@ -3,7 +3,7 @@ import 'dart:async';
 import '../../domain/capabilities/capability.dart';
 import '../../domain/entities/anc_mode.dart';
 import '../../domain/entities/battery_status.dart';
-import '../../domain/entities/connection_state.dart';
+import '../../domain/entities/link_state.dart';
 import '../../domain/ports/earbuds_port.dart';
 
 /// Simulated earbuds used for UI work and tests.
@@ -15,18 +15,18 @@ class FakeEarbudsAdapter implements EarbudsPort {
       right: 78,
       caseLevel: 60,
     ),
-    ConnectionState initialConnection = ConnectionState.connected,
+    LinkState initialConnection = LinkState.connected,
   }) : _capabilities = Set.unmodifiable(capabilities),
        _battery = initialBattery,
        _connection = initialConnection;
 
   final Set<Capability> _capabilities;
   BatteryStatus _battery;
-  ConnectionState _connection;
+  LinkState _connection;
   AncMode _ancMode = AncMode.off;
 
   final _batteryController = StreamController<BatteryStatus>.broadcast();
-  final _connectionController = StreamController<ConnectionState>.broadcast();
+  final _connectionController = StreamController<LinkState>.broadcast();
 
   AncMode get ancMode => _ancMode;
 
@@ -35,13 +35,13 @@ class FakeEarbudsAdapter implements EarbudsPort {
     _batteryController.add(battery);
   }
 
-  void updateConnection(ConnectionState connection) {
+  void updateConnection(LinkState connection) {
     _connection = connection;
     _connectionController.add(connection);
   }
 
   @override
-  Stream<ConnectionState> watchConnection() async* {
+  Stream<LinkState> watchConnection() async* {
     yield _connection;
     yield* _connectionController.stream;
   }

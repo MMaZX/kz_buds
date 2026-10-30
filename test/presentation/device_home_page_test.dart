@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart' hide ConnectionState;
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kz_buds/data/fake/fake_earbuds_adapter.dart';
 import 'package:kz_buds/domain/entities/battery_status.dart';
-import 'package:kz_buds/domain/entities/connection_state.dart';
+import 'package:kz_buds/domain/entities/link_state.dart';
 import 'package:kz_buds/presentation/pages/device_home_page.dart';
 import 'package:kz_buds/presentation/providers/earbuds_providers.dart';
 
@@ -42,7 +42,7 @@ void main() {
   testWidgets('shows disconnected state without battery', (tester) async {
     await pumpPage(
       tester,
-      FakeEarbudsAdapter(initialConnection: ConnectionState.disconnected),
+      FakeEarbudsAdapter(initialConnection: LinkState.disconnected),
     );
     expect(find.text('Disconnected'), findsOneWidget);
     expect(find.text('Left'), findsNothing);

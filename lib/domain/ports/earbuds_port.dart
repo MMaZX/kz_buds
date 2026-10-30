@@ -1,10 +1,10 @@
 import '../capabilities/capability.dart';
 import '../entities/anc_mode.dart';
 import '../entities/battery_status.dart';
-import '../entities/connection_state.dart';
+import '../entities/link_state.dart';
 
 abstract class EarbudsPort {
-  Stream<ConnectionState> watchConnection();
+  Stream<LinkState> watchConnection();
 
   Future<Set<Capability>> capabilities();
 

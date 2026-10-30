@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart' hide ConnectionState;
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/battery_status.dart';
-import '../../domain/entities/connection_state.dart';
+import '../../domain/entities/link_state.dart';
 import '../providers/earbuds_providers.dart';
 import '../widgets/battery_tile.dart';
 
@@ -18,14 +18,12 @@ class DeviceHomePage extends ConsumerWidget {
       appBar: AppBar(title: const Text('KZ Buds')),
       body: Center(
         child: switch (connection) {
-          AsyncData(value: ConnectionState.connected) => switch (battery) {
+          AsyncData(value: LinkState.connected) => switch (battery) {
             AsyncData(:final value) => _BatteryRow(status: value),
             AsyncError() => const Text('Battery unavailable'),
             _ => const CircularProgressIndicator(),
           },
-          AsyncData(value: ConnectionState.connecting) => const Text(
-            'Connecting...',
-          ),
+          AsyncData(value: LinkState.connecting) => const Text('Connecting...'),
           AsyncData() => const Text('Disconnected'),
           AsyncError() => const Text('Connection error'),
           _ => const CircularProgressIndicator(),

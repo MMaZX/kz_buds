@@ -3,7 +3,7 @@ import 'package:kz_buds/data/fake/fake_earbuds_adapter.dart';
 import 'package:kz_buds/domain/capabilities/capability.dart';
 import 'package:kz_buds/domain/entities/anc_mode.dart';
 import 'package:kz_buds/domain/entities/battery_status.dart';
-import 'package:kz_buds/domain/entities/connection_state.dart';
+import 'package:kz_buds/domain/entities/link_state.dart';
 
 void main() {
   test('reports the configured capabilities', () async {
@@ -30,15 +30,13 @@ void main() {
   });
 
   test('connection stream emits current value then updates', () async {
-    final fake = FakeEarbudsAdapter(
-      initialConnection: ConnectionState.connecting,
-    );
-    final events = <ConnectionState>[];
+    final fake = FakeEarbudsAdapter(initialConnection: LinkState.connecting);
+    final events = <LinkState>[];
     final sub = fake.watchConnection().listen(events.add);
     await pumpEventQueue();
-    fake.updateConnection(ConnectionState.disconnected);
+    fake.updateConnection(LinkState.disconnected);
     await pumpEventQueue();
-    expect(events, [ConnectionState.connecting, ConnectionState.disconnected]);
+    expect(events, [LinkState.connecting, LinkState.disconnected]);
     await sub.cancel();
     await fake.dispose();
   });

@@ -76,6 +76,13 @@ void main() {
       expect(find.text('hugeicons'), findsOneWidget);
     });
 
+    testWidgets('the settings do not show through the page', (tester) async {
+      await openAbout(tester);
+      expect(find.text('Version $kAppVersion'), findsOneWidget);
+      expect(find.text('Reduce transparency'), findsNothing);
+      expect(find.text('APPEARANCE'), findsNothing);
+    });
+
     testWidgets('back returns to the settings', (tester) async {
       await openAbout(tester);
       await tester.tap(find.bySemanticsLabel('Back'));

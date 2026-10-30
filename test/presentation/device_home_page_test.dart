@@ -5,6 +5,7 @@ import 'package:kz_buds/domain/capabilities/capability.dart';
 import 'package:kz_buds/domain/entities/anc_mode.dart';
 import 'package:kz_buds/domain/entities/battery_status.dart';
 import 'package:kz_buds/domain/entities/link_state.dart';
+import 'package:kz_buds/presentation/theme/kz_palette.dart';
 import 'package:kz_buds/presentation/theme/kz_theme_preference.dart';
 import 'package:kz_buds/presentation/widgets/kz_chip.dart';
 
@@ -85,6 +86,14 @@ void main() {
       expect(chipSelected(tester, 'Ambient'), isTrue);
       expect(chipSelected(tester, 'Off'), isFalse);
     });
+  });
+
+  testWidgets('the page background is one flat color', (tester) async {
+    await pumpApp(tester, FakeEarbudsAdapter());
+    final flat = find.byWidgetPredicate(
+      (w) => w is ColoredBox && w.color == KzPalette.inkBg,
+    );
+    expect(flat, findsWidgets);
   });
 
   testWidgets('the page background is flat: no gradient anywhere', (

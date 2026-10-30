@@ -10,7 +10,6 @@ abstract final class KzPalette {
   static const inkPanel = Color(0xFF1E1E1E);
   static const inkMass = Color(0xFF262626);
   static const inkLine = Color(0xFF353535);
-  static const inkGrid = Color(0xFF202020);
   static const inkInput = Color(0xFF707070);
   static const inkFaint = Color(0xFF909090);
   static const inkText = Color(0xFFEDEDED);
@@ -22,12 +21,10 @@ abstract final class KzPalette {
   static const paperMass = Color(0xFFE0E0E0);
   static const paperHover = Color(0xFFE6E6E6);
   static const paperLine = Color(0xFFCCCCCC);
-  static const paperGrid = Color(0xFFE8E8E8);
   static const paperInput = Color(0xFF7A7A7A);
   static const paperDim = Color(0xFF555555);
   static const paperText = Color(0xFF111111);
   static const white = Color(0xFFFFFFFF);
-  static const transparent = Color(0x00000000);
 
   // KZ Copper accent.
   static const copperDark = Color(0xFFD9905F);

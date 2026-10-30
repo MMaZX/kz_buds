@@ -4,7 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kz_buds/data/fake/fake_earbuds_adapter.dart';
 import 'package:kz_buds/domain/capabilities/capability.dart';
 import 'package:kz_buds/domain/entities/anc_mode.dart';
+import 'package:kz_buds/presentation/pages/anc_page.dart';
 import 'package:kz_buds/presentation/providers/eq_providers.dart';
+import 'package:kz_buds/presentation/theme/kz_palette.dart';
 import 'package:kz_buds/presentation/widgets/kz_chip.dart';
 import 'package:kz_buds/presentation/widgets/kz_nav_pill.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
@@ -124,6 +126,50 @@ void main() {
       await tester.tap(find.text('Lets outside sound in'));
       await tester.pumpAndSettle();
       expect(fake.ancMode, AncMode.ambient);
+    });
+
+    testWidgets('a pushed page is opaque and slides in, never fades', (
+      tester,
+    ) async {
+      await pumpApp(tester, FakeEarbudsAdapter());
+      await tester.tap(find.bySemanticsLabel('Noise control details'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(
+        find.ancestor(
+          of: find.byType(AncPage),
+          matching: find.byType(FadeTransition),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.ancestor(
+          of: find.byType(AncPage),
+          matching: find.byType(SlideTransition),
+        ),
+        findsWidgets,
+      );
+      expect(
+        find.ancestor(
+          of: find.byType(AncPage),
+          matching: find.byWidgetPredicate(
+            (w) => w is ColoredBox && w.color == KzPalette.inkBg,
+          ),
+        ),
+        // The app background plus the route's own opaque background.
+        findsNWidgets(2),
+      );
+    });
+
+    testWidgets('the home does not show through the page', (tester) async {
+      await pumpApp(tester, FakeEarbudsAdapter());
+      expect(find.byType(Placeholder), findsOneWidget);
+      await openAnc(tester);
+      expect(find.text('Noise control'), findsOneWidget);
+      expect(find.byType(Placeholder), findsNothing);
+      expect(find.text('KZ Buds'), findsNothing);
+      expect(find.text('NOISE CONTROL'), findsNothing);
     });
 
     testWidgets('back returns to the home', (tester) async {

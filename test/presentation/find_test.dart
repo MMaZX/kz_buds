@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kz_buds/data/fake/fake_earbuds_adapter.dart';
 import 'package:kz_buds/domain/capabilities/capability.dart';
@@ -50,6 +51,15 @@ void main() {
       expect(find.bySemanticsLabel('Play on left earbud'), findsOneWidget);
       expect(find.bySemanticsLabel('Play on right earbud'), findsOneWidget);
       expect(find.text('Stop'), findsNothing);
+    });
+
+    testWidgets('the home does not show through the page', (tester) async {
+      await pumpApp(tester, withFind());
+      expect(find.byType(Placeholder), findsOneWidget);
+      await openFind(tester);
+      expect(find.byType(FindPage), findsOneWidget);
+      expect(find.byType(Placeholder), findsNothing);
+      expect(find.text('KZ Buds'), findsNothing);
     });
 
     testWidgets('playing shows Stop and tells the device', (tester) async {

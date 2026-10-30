@@ -5,7 +5,6 @@ import 'kz_color_scheme.dart';
 import 'kz_colors.dart';
 import 'kz_glass_theme.dart';
 import 'kz_metrics.dart';
-import 'kz_palette.dart';
 import 'kz_typography.dart';
 
 class KzThemeData {
@@ -14,7 +13,6 @@ class KzThemeData {
     required this.scheme,
     required this.typography,
     required this.glass,
-    required this.grid,
   });
 
   const KzThemeData.dark()
@@ -23,7 +21,6 @@ class KzThemeData {
         scheme: const KzColorScheme.dark(),
         typography: const KzTypography(),
         glass: const KzGlassTheme.dark(),
-        grid: KzPalette.inkGrid,
       );
 
   const KzThemeData.light()
@@ -32,16 +29,12 @@ class KzThemeData {
         scheme: const KzColorScheme.light(),
         typography: const KzTypography(),
         glass: const KzGlassTheme.light(),
-        grid: KzPalette.paperGrid,
       );
 
   final Brightness brightness;
   final ShadColorScheme scheme;
   final KzTypography typography;
   final KzGlassTheme glass;
-
-  /// Tone of the faint grid lines on the page background.
-  final Color grid;
 
   KzColors get colors => KzColors(scheme);
 

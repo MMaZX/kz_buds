@@ -21,6 +21,7 @@ void main() {
     addTearDown(session.close);
 
     expect(calls, ['os ${carol.id}', 'link ${carol.id}']);
+    expect(session.osName, carol.name);
   });
 
   test('fails without touching the radio when nothing is paired', () async {

@@ -14,6 +14,10 @@ abstract final class KzColorKeys {
 
 /// Maps the KZ palette onto the shadcn tokens. The accent lives in `ring` and
 /// `custom`, never in `accent`, which shadcn uses as the hover surface.
+///
+/// `border` is the outline of a control (inactive pill, icon button, input),
+/// never of a container: cards and panels separate by fill (`card`,
+/// `secondary`). Keep it opaque so shadcn inputs and switches keep their shape.
 class KzColorScheme extends ShadColorScheme {
   const KzColorScheme.dark()
     : super(
@@ -35,11 +39,11 @@ class KzColorScheme extends ShadColorScheme {
         destructiveForeground: KzPalette.inkBg,
         border: KzPalette.inkLine,
         input: KzPalette.inkInput,
-        ring: KzPalette.copperDark,
-        selection: KzPalette.copperSelectionDark,
+        ring: KzPalette.signalRedDark,
+        selection: KzPalette.signalSelectionDark,
         custom: const {
-          KzColorKeys.brand: KzPalette.copperDark,
-          KzColorKeys.brandForeground: KzPalette.inkBg,
+          KzColorKeys.brand: KzPalette.signalRedDark,
+          KzColorKeys.brandForeground: KzPalette.white,
           KzColorKeys.success: KzPalette.successDark,
           KzColorKeys.warning: KzPalette.warningDark,
           KzColorKeys.batteryOk: KzPalette.inkText,
@@ -68,10 +72,10 @@ class KzColorScheme extends ShadColorScheme {
         destructiveForeground: KzPalette.white,
         border: KzPalette.paperLine,
         input: KzPalette.paperInput,
-        ring: KzPalette.copperLight,
-        selection: KzPalette.copperSelectionLight,
+        ring: KzPalette.signalRedLight,
+        selection: KzPalette.signalSelectionLight,
         custom: const {
-          KzColorKeys.brand: KzPalette.copperLight,
+          KzColorKeys.brand: KzPalette.signalRedLight,
           KzColorKeys.brandForeground: KzPalette.white,
           KzColorKeys.success: KzPalette.successLight,
           KzColorKeys.warning: KzPalette.warningLight,

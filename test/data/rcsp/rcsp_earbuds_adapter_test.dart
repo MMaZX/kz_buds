@@ -7,6 +7,7 @@ import 'package:kz_buds/data/spp/rcsp_spp_session.dart';
 import 'package:kz_buds/domain/capabilities/capability.dart';
 import 'package:kz_buds/domain/entities/anc_mode.dart';
 import 'package:kz_buds/domain/entities/battery_status.dart';
+import 'package:kz_buds/domain/entities/earbuds_identity.dart';
 import 'package:kz_buds/domain/entities/find_target.dart';
 import 'package:kz_buds/domain/entities/link_state.dart';
 
@@ -110,6 +111,41 @@ void main() {
       await adapter.watchBattery().first,
       const BatteryStatus(left: 40, right: 45),
     );
+  });
+
+  group('identity', () {
+    test('comes from the target info name and outlives a drop', () async {
+      await adapter.connect();
+      await earbuds.drop();
+      await pumpEventQueue();
+
+      expect(
+        await adapter.identity(),
+        const EarbudsIdentity(name: 'CAROL PRO'),
+      );
+    });
+
+    test('falls back to the name the OS knows', () async {
+      earbuds = FakeRcspEarbuds(deviceName: '');
+      adapter = RcspEarbudsAdapter(
+        () => RcspSppSession.open(
+          () async => earbuds,
+          timeout: timeout,
+          osName: 'Carol Pro',
+        ),
+      );
+
+      await adapter.connect();
+
+      expect(
+        await adapter.identity(),
+        const EarbudsIdentity(name: 'Carol Pro'),
+      );
+    });
+
+    test('is unknown before the first connection', () async {
+      expect(await adapter.identity(), isNull);
+    });
   });
 
   group('capabilities', () {

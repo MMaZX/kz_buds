@@ -1,6 +1,7 @@
 import '../capabilities/capability.dart';
 import '../entities/anc_mode.dart';
 import '../entities/battery_status.dart';
+import '../entities/earbuds_identity.dart';
 import '../entities/find_target.dart';
 import '../entities/link_state.dart';
 
@@ -13,6 +14,10 @@ abstract class EarbudsPort {
   Future<void> connect();
 
   Future<Set<Capability>> capabilities();
+
+  /// What the earbuds last reported about themselves; null until known.
+  /// For appearance only (see EarbudsCatalog), never for features.
+  Future<EarbudsIdentity?> identity();
 
   Stream<BatteryStatus> watchBattery();
 

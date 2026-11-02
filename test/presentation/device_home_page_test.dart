@@ -4,7 +4,9 @@ import 'package:kz_buds/data/fake/fake_earbuds_adapter.dart';
 import 'package:kz_buds/domain/capabilities/capability.dart';
 import 'package:kz_buds/domain/entities/anc_mode.dart';
 import 'package:kz_buds/domain/entities/battery_status.dart';
+import 'package:kz_buds/domain/entities/earbuds_identity.dart';
 import 'package:kz_buds/domain/entities/link_state.dart';
+import 'package:kz_buds/presentation/theme/kz_model_art.dart';
 import 'package:kz_buds/presentation/theme/kz_palette.dart';
 import 'package:kz_buds/presentation/theme/kz_theme_preference.dart';
 import 'package:kz_buds/presentation/widgets/kz_chip.dart';
@@ -169,6 +171,20 @@ void main() {
       );
       expect(find.text('RECONNECT'), findsNothing);
     });
+  });
+
+  testWidgets('a recognised model shows its artwork as the hero', (
+    tester,
+  ) async {
+    await pumpApp(
+      tester,
+      FakeEarbudsAdapter(identity: const EarbudsIdentity(name: 'CAROL PRO')),
+    );
+
+    final image = tester.widget<Image>(find.byType(Image));
+    expect((image.image as AssetImage).assetName, KzModelArt.kzCarolPro);
+    expect(find.bySemanticsLabel('KZ Carol Pro'), findsOneWidget);
+    expect(find.byType(Placeholder), findsNothing);
   });
 
   testWidgets('the hero is a Placeholder until renders exist', (tester) async {

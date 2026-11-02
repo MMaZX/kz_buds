@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/capabilities/capability.dart';
+import '../../domain/catalog/earbuds_model.dart';
 import '../../domain/entities/anc_mode.dart';
 import '../../domain/entities/battery_status.dart';
 import '../../domain/entities/link_state.dart';
@@ -11,6 +12,7 @@ import '../providers/earbuds_providers.dart';
 import '../providers/navigation_providers.dart';
 import '../theme/kz_icons.dart';
 import '../theme/kz_metrics.dart';
+import '../theme/kz_model_art.dart';
 import '../theme/kz_theme.dart';
 import '../widgets/kz_anc_rings.dart';
 import '../widgets/kz_battery_indicator.dart';
@@ -32,7 +34,6 @@ class DeviceHomePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = KzTheme.of(context);
     final link = ref.watch(connectionProvider);
     final battery = ref.watch(batteryProvider);
     final capabilities =
@@ -50,10 +51,9 @@ class DeviceHomePage extends ConsumerWidget {
             const SizedBox(height: KzSpace.s24),
             Opacity(
               opacity: connected ? 1 : _dimmedHeroOpacity,
-              // Placeholder until per-model renders exist.
               child: SizedBox(
                 height: _heroHeight,
-                child: Placeholder(color: theme.scheme.mutedForeground),
+                child: _Hero(model: ref.watch(earbudsModelProvider)),
               ),
             ),
             const SizedBox(height: KzSpace.s24),
@@ -125,6 +125,26 @@ class DeviceHomePage extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// The model's artwork, or a generic placeholder for unknown models.
+class _Hero extends StatelessWidget {
+  const _Hero({required this.model});
+
+  final EarbudsModel? model;
+
+  @override
+  Widget build(BuildContext context) {
+    final asset = KzModelArt.assetFor(model);
+    if (asset == null) {
+      return Placeholder(color: KzTheme.of(context).scheme.mutedForeground);
+    }
+    return Image.asset(
+      asset,
+      fit: BoxFit.contain,
+      semanticLabel: model!.displayName,
     );
   }
 }

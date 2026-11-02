@@ -107,7 +107,7 @@ void main() {
     await tester.pumpAndSettle();
     final context = tester.element(find.byType(_Probe));
 
-    expect(KzTheme.of(context).colors.brand, KzPalette.copperDark);
+    expect(KzTheme.of(context).colors.brand, KzPalette.signalRedDark);
     final style = DefaultTextStyle.of(context).style;
     expect(style.fontFamily, 'Inter');
     expect(style.fontSize, 15);

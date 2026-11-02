@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kz_buds/domain/capabilities/capability.dart';
 import 'package:kz_buds/domain/entities/anc_mode.dart';
 import 'package:kz_buds/domain/entities/battery_status.dart';
+import 'package:kz_buds/domain/entities/earbuds_identity.dart';
 import 'package:kz_buds/domain/entities/find_target.dart';
 import 'package:kz_buds/domain/entities/link_state.dart';
 import 'package:kz_buds/domain/ports/earbuds_port.dart';
@@ -26,6 +27,9 @@ class _LinkBoundPort implements EarbudsPort {
 
   @override
   Future<void> connect() async {}
+
+  @override
+  Future<EarbudsIdentity?> identity() async => null;
 
   @override
   Stream<BatteryStatus> watchBattery() => const Stream.empty();

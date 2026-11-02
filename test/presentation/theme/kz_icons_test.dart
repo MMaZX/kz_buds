@@ -58,9 +58,9 @@ void main() {
   testWidgets('explicit color and size win', (tester) async {
     await pumpKz(
       tester,
-      const KzIcon(KzIcons.tap, size: 32, color: KzPalette.copperDark),
+      const KzIcon(KzIcons.tap, size: 32, color: KzPalette.signalRedDark),
     );
-    expect(hugeIcon(tester).color, KzPalette.copperDark);
+    expect(hugeIcon(tester).color, KzPalette.signalRedDark);
     expect(hugeIcon(tester).size, 32);
   });
 }

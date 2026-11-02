@@ -1,12 +1,12 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../domain/entities/find_target.dart';
 import '../providers/find_providers.dart';
 import '../theme/kz_icons.dart';
 import '../theme/kz_metrics.dart';
 import '../theme/kz_theme.dart';
+import '../widgets/kz_block_button.dart';
 import '../widgets/kz_card.dart';
 import '../widgets/kz_page.dart';
 import '../widgets/kz_page_header.dart';
@@ -74,11 +74,7 @@ class FindPage extends ConsumerWidget {
                   ),
                   if (playing != null) ...[
                     const SizedBox(height: KzSpace.s24),
-                    ShadButton.destructive(
-                      onPressed: notifier.stop,
-                      leading: const KzIcon(KzIcons.close, size: 16),
-                      child: const Text('Stop'),
-                    ),
+                    KzBlockButton(label: 'Stop', onPressed: notifier.stop),
                   ],
                 ],
               ),

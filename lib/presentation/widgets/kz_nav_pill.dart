@@ -1,7 +1,5 @@
 import 'package:flutter/widgets.dart';
 
-import '../theme/kz_glass.dart';
-import '../theme/kz_glass_theme.dart';
 import '../theme/kz_icons.dart';
 import '../theme/kz_metrics.dart';
 import '../theme/kz_theme.dart';
@@ -14,8 +12,9 @@ class KzNavItem {
   final String label;
 }
 
-/// Floating glass navigation. The selected item shows icon and label in a
-/// lighter pill; the others show only their icon. Four items at most.
+/// Floating navigation on an opaque pill. The selected item shows icon and
+/// label filled with the primary; the others show only their icon. Four items
+/// at most.
 class KzNavPill extends StatelessWidget {
   const KzNavPill({
     required this.items,
@@ -35,13 +34,16 @@ class KzNavPill extends StatelessWidget {
   Widget build(BuildContext context) {
     assert(items.length <= maxItems, 'KzNavPill holds at most $maxItems items');
     final theme = KzTheme.of(context);
+    final scheme = theme.scheme;
     final radius = BorderRadius.circular(KzRadii.pill);
 
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: maxWidth),
-      child: KzGlass(
-        level: KzGlassLevel.chrome,
-        borderRadius: radius,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: scheme.secondary,
+          borderRadius: radius,
+        ),
         child: Padding(
           padding: const EdgeInsets.all(KzSpace.s4),
           child: Row(
@@ -55,9 +57,7 @@ class KzNavPill extends StatelessWidget {
                   onPressed: () => onSelected(i),
                   child: DecoratedBox(
                     decoration: BoxDecoration(
-                      color: i == selectedIndex
-                          ? theme.glass.subtle.fill
-                          : null,
+                      color: i == selectedIndex ? scheme.primary : null,
                       borderRadius: radius,
                     ),
                     child: Padding(
@@ -72,8 +72,8 @@ class KzNavPill extends StatelessWidget {
                             items[i].icon,
                             emphasized: i == selectedIndex,
                             color: i == selectedIndex
-                                ? theme.scheme.foreground
-                                : theme.scheme.mutedForeground,
+                                ? scheme.primaryForeground
+                                : scheme.mutedForeground,
                           ),
                           if (i == selectedIndex) ...[
                             const SizedBox(width: KzSpace.s8),
@@ -81,7 +81,7 @@ class KzNavPill extends StatelessWidget {
                               child: Text(
                                 items[i].label,
                                 style: theme.typography.label.copyWith(
-                                  color: theme.scheme.foreground,
+                                  color: scheme.primaryForeground,
                                 ),
                               ),
                             ),

@@ -15,9 +15,10 @@ Future<RcspSppSession> openLinuxRcspSession({
 }) async {
   final found = await discover();
   if (found.isEmpty) throw StateError('No paired JieLi earbuds found');
-  final id = found.first.id;
+  final earbuds = found.first;
+  final id = earbuds.id;
   log?.call('BlueZ connect (audio profiles)');
   await connectOs(id);
   log?.call('RFCOMM connect and RCSP auth');
-  return RcspSppSession.open(() => openLink(id));
+  return RcspSppSession.open(() => openLink(id), osName: earbuds.name);
 }

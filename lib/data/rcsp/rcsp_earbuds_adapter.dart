@@ -3,6 +3,7 @@ import 'dart:async';
 import '../../domain/capabilities/capability.dart';
 import '../../domain/entities/anc_mode.dart';
 import '../../domain/entities/battery_status.dart';
+import '../../domain/entities/earbuds_identity.dart';
 import '../../domain/entities/find_target.dart';
 import '../../domain/entities/link_state.dart';
 import '../../domain/ports/earbuds_port.dart';
@@ -27,6 +28,7 @@ class RcspEarbudsAdapter implements EarbudsPort {
   LinkState _link = LinkState.disconnected;
   BatteryStatus? _battery;
   RcspSupport? _support;
+  EarbudsIdentity? _identity;
   RcspSppSession? _session;
   StreamSubscription<RcspFrame>? _deviceCommands;
   Timer? _poll;
@@ -52,7 +54,16 @@ class RcspEarbudsAdapter implements EarbudsPort {
     _deviceCommands = session.protocol.deviceCommands.listen(_onDeviceCommand);
     unawaited(session.protocol.closed.then((_) => _onLinkEnded(session)));
     // Before reporting connected, so a capability read on that event sees it.
-    _support = await _readSupport(session);
+    final target = await _readTargetInfo(session);
+    _support = target?.support;
+    final name = target?.name ?? session.osName;
+    if (name != null) {
+      _identity = EarbudsIdentity(
+        name: name,
+        vendorId: target?.vendorId,
+        productId: target?.productId,
+      );
+    }
     _setLink(LinkState.connected);
     await _refreshBattery();
     _poll = Timer.periodic(batteryPoll, (_) => unawaited(_refreshBattery()));
@@ -67,6 +78,10 @@ class RcspEarbudsAdapter implements EarbudsPort {
     if (_session != null && (_support?.searchDevice ?? false))
       Capability.findBuds,
   };
+
+  /// Kept after a drop, so the app still shows which earbuds these are.
+  @override
+  Future<EarbudsIdentity?> identity() async => _identity;
 
   @override
   Stream<BatteryStatus> watchBattery() =>
@@ -136,14 +151,14 @@ class RcspEarbudsAdapter implements EarbudsPort {
     await _batteryController.close();
   }
 
-  Future<RcspSupport?> _readSupport(RcspSppSession session) async {
+  Future<RcspTargetInfo?> _readTargetInfo(RcspSppSession session) async {
     try {
       final response = await session.protocol.send(
         RcspCommands.getTargetInfo(),
       );
-      return RcspTargetInfo.parse(response.payload).support;
+      return RcspTargetInfo.parse(response.payload);
     } on Object {
-      // Unknown support: report no capability rather than guess.
+      // Unknown support and identity: report nothing rather than guess.
       return null;
     }
   }

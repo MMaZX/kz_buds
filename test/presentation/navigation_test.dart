@@ -8,8 +8,8 @@ import 'package:kz_buds/presentation/pages/anc_page.dart';
 import 'package:kz_buds/presentation/providers/eq_providers.dart';
 import 'package:kz_buds/presentation/theme/kz_palette.dart';
 import 'package:kz_buds/presentation/widgets/kz_chip.dart';
+import 'package:kz_buds/presentation/widgets/kz_dot_slider.dart';
 import 'package:kz_buds/presentation/widgets/kz_nav_pill.dart';
-import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../support/pump_home.dart';
 
@@ -66,7 +66,7 @@ void main() {
 
     testWidgets('shows ten bands and starts on Flat', (tester) async {
       await openEq(tester);
-      expect(find.byType(ShadSlider), findsNWidgets(10));
+      expect(find.byType(KzDotSlider), findsNWidgets(10));
       for (final label in eqBandLabels) {
         expect(find.text(label), findsOneWidget);
       }
@@ -84,7 +84,7 @@ void main() {
 
     testWidgets('dragging a band switches to Custom', (tester) async {
       final container = await openEq(tester);
-      await tester.drag(find.byType(ShadSlider).first, const Offset(0, -60));
+      await tester.drag(find.byType(KzDotSlider).first, const Offset(0, -60));
       await tester.pumpAndSettle();
       expect(container.read(eqProvider).preset, EqPreset.custom);
       expect(container.read(eqProvider).gains.first, greaterThan(0));
@@ -95,7 +95,7 @@ void main() {
       final container = await openEq(tester);
       await tester.tap(find.widgetWithText(KzChip, 'Bass'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Reset'));
+      await tester.tap(find.text('RESET'));
       await tester.pumpAndSettle();
       expect(container.read(eqProvider).preset, EqPreset.flat);
       expect(chipSelected(tester, 'Flat'), isTrue);

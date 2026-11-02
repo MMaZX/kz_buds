@@ -1,11 +1,12 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../providers/eq_providers.dart';
 import '../theme/kz_metrics.dart';
 import '../theme/kz_theme.dart';
+import '../widgets/kz_block_button.dart';
 import '../widgets/kz_chip.dart';
+import '../widgets/kz_dot_slider.dart';
 import '../widgets/kz_page.dart';
 import '../widgets/kz_page_header.dart';
 import '../widgets/kz_section.dart';
@@ -65,10 +66,7 @@ class EqPage extends ConsumerWidget {
             const SizedBox(height: KzSpace.s16),
             Align(
               alignment: Alignment.centerLeft,
-              child: ShadButton.outline(
-                onPressed: notifier.reset,
-                child: const Text('Reset'),
-              ),
+              child: KzBlockButton(label: 'Reset', onPressed: notifier.reset),
             ),
             const SizedBox(height: AppShell.navClearance),
           ],
@@ -78,7 +76,7 @@ class EqPage extends ConsumerWidget {
   }
 }
 
-class _Band extends StatefulWidget {
+class _Band extends StatelessWidget {
   const _Band({
     required this.label,
     required this.gain,
@@ -89,28 +87,7 @@ class _Band extends StatefulWidget {
   final double gain;
   final ValueChanged<double> onChanged;
 
-  @override
-  State<_Band> createState() => _BandState();
-}
-
-class _BandState extends State<_Band> {
   static const _trackLength = 180.0;
-
-  late final ShadSliderController _controller = ShadSliderController(
-    initialValue: widget.gain,
-  );
-
-  @override
-  void didUpdateWidget(_Band oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (_controller.value != widget.gain) _controller.value = widget.gain;
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -121,25 +98,25 @@ class _BandState extends State<_Band> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          formatGain(widget.gain),
+          formatGain(gain),
           style: theme.typography.caption.copyWith(color: scheme.foreground),
         ),
         const SizedBox(height: KzSpace.s8),
         SizedBox(
           height: _trackLength,
-          child: RotatedBox(
-            quarterTurns: 3,
-            child: ShadSlider(
-              controller: _controller,
-              min: eqMinGain,
-              max: eqMaxGain,
-              onChanged: widget.onChanged,
-            ),
+          child: KzDotSlider(
+            value: gain,
+            min: eqMinGain,
+            max: eqMaxGain,
+            step: eqGainStep,
+            semanticsLabel: label,
+            semanticsValue: '${formatGain(gain)} dB',
+            onChanged: onChanged,
           ),
         ),
         const SizedBox(height: KzSpace.s8),
         Text(
-          widget.label,
+          label,
           style: theme.typography.caption.copyWith(
             color: scheme.mutedForeground,
           ),

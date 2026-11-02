@@ -26,7 +26,8 @@ abstract final class KzIcons {
   static const KzIconData help = HugeIcons.strokeRoundedHelpSquare;
   static const KzIconData update = HugeIcons.strokeRoundedCircleArrowUp01;
   static const KzIconData menu = HugeIcons.strokeRoundedMenu01;
-  static const KzIconData back = HugeIcons.strokeRoundedArrowLeft01;
+  static const KzIconData more = HugeIcons.strokeRoundedMoreVertical;
+  static const KzIconData back = HugeIcons.strokeRoundedArrowLeft02;
   static const KzIconData close = HugeIcons.strokeRoundedCancel01;
   static const KzIconData bluetooth = HugeIcons.strokeRoundedBluetooth;
   static const KzIconData settings = HugeIcons.strokeRoundedSettings02;

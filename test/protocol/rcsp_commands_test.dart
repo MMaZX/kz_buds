@@ -112,6 +112,37 @@ void main() {
       expect(info.support!.doubleConnection, isFalse);
     });
 
+    test('target info reads the device name (TLV 16)', () {
+      final info = RcspTargetInfo.parse(
+        hex('0a 10 43 41 52 4f 4c 20 50 52 4f'),
+      );
+
+      expect(info.name, 'CAROL PRO');
+    });
+
+    test('target info reads vid, pid and uid (TLV 10)', () {
+      final info = RcspTargetInfo.parse(hex('07 0a 05 d6 00 0a 00 03'));
+
+      expect(info.vendorId, 0x05d6);
+      expect(info.productId, 0x000a);
+      expect(info.uid, 3);
+    });
+
+    test('a two-byte TLV 10 is a uid under the JieLi vendor', () {
+      final info = RcspTargetInfo.parse(hex('03 0a 00 07'));
+
+      expect(info.vendorId, 0x05d6);
+      expect(info.productId, isNull);
+      expect(info.uid, 7);
+    });
+
+    test('target info without name or ids reports them as unknown', () {
+      final info = RcspTargetInfo.parse(hex('02 00 21'));
+
+      expect(info.name, isNull);
+      expect(info.vendorId, isNull);
+    });
+
     test('target info without TLV 19 reports unknown support', () {
       expect(RcspTargetInfo.parse(hex('02 00 21')).support, isNull);
     });

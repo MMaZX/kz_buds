@@ -13,6 +13,7 @@ class FakeRcspEarbuds implements SppLink {
     RcspAuth? deviceAuth,
     this.advBattery = const [60, 70, 0],
     this.supportFlags = const [0x44, 0x00],
+    this.deviceName = 'CAROL PRO',
   }) : _auth = deviceAuth ?? RcspAuth();
 
   final RcspAuth _auth;
@@ -20,6 +21,9 @@ class FakeRcspEarbuds implements SppLink {
 
   /// Target info TLV 19; the default reports search device and ANC.
   final List<int> supportFlags;
+
+  /// Target info TLV 16; empty leaves the item out, as the Carol Pro does.
+  final String deviceName;
   final _incoming = StreamController<List<int>>();
   final _ownChallenge = Uint8List.fromList([0x00, ...List.filled(16, 0x5a)]);
   final requests = <RcspFrame>[];
@@ -49,6 +53,11 @@ class FakeRcspEarbuds implements SppLink {
           supportFlags.length + 1,
           0x13,
           ...supportFlags,
+          if (deviceName.isNotEmpty) ...[
+            deviceName.length + 1,
+            0x10,
+            ...deviceName.codeUnits,
+          ],
         ],
         RcspOpcode.getSysInfo => const [0xff, 0x02, 0x00, 0x50],
         _ => const <int>[],

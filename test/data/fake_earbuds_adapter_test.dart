@@ -3,6 +3,7 @@ import 'package:kz_buds/data/fake/fake_earbuds_adapter.dart';
 import 'package:kz_buds/domain/capabilities/capability.dart';
 import 'package:kz_buds/domain/entities/anc_mode.dart';
 import 'package:kz_buds/domain/entities/battery_status.dart';
+import 'package:kz_buds/domain/entities/earbuds_identity.dart';
 import 'package:kz_buds/domain/entities/find_target.dart';
 import 'package:kz_buds/domain/entities/link_state.dart';
 
@@ -88,6 +89,16 @@ void main() {
       );
       await fake.dispose();
     });
+  });
+
+  test('reports the configured identity', () async {
+    final fake = FakeEarbudsAdapter(
+      identity: const EarbudsIdentity(name: 'Carol Pro'),
+    );
+
+    expect(await fake.identity(), const EarbudsIdentity(name: 'Carol Pro'));
+    expect(await FakeEarbudsAdapter().identity(), isNull);
+    await fake.dispose();
   });
 
   group('connect', () {

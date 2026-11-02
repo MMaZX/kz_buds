@@ -3,6 +3,7 @@ import 'dart:async';
 import '../../domain/capabilities/capability.dart';
 import '../../domain/entities/anc_mode.dart';
 import '../../domain/entities/battery_status.dart';
+import '../../domain/entities/earbuds_identity.dart';
 import '../../domain/entities/find_target.dart';
 import '../../domain/entities/link_state.dart';
 import '../../domain/ports/earbuds_port.dart';
@@ -17,11 +18,13 @@ class FakeEarbudsAdapter implements EarbudsPort {
       caseLevel: 60,
     ),
     LinkState initialLinkState = LinkState.connected,
+    this._identity,
   }) : _capabilities = Set.unmodifiable(capabilities),
        _battery = initialBattery,
        _link = initialLinkState;
 
   final Set<Capability> _capabilities;
+  final EarbudsIdentity? _identity;
   BatteryStatus _battery;
   LinkState _link;
   AncMode _ancMode = AncMode.off;
@@ -68,6 +71,9 @@ class FakeEarbudsAdapter implements EarbudsPort {
 
   @override
   Future<Set<Capability>> capabilities() async => _capabilities;
+
+  @override
+  Future<EarbudsIdentity?> identity() async => _identity;
 
   @override
   Stream<BatteryStatus> watchBattery() async* {

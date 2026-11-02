@@ -6,6 +6,8 @@ import '../theme/kz_theme.dart';
 import 'kz_pressable.dart';
 
 /// 56 px circular button with an icon and an optional uppercase label below.
+/// Unselected is a hairline outline on the background; selected fills with
+/// the primary.
 class KzRoundButton extends StatelessWidget {
   const KzRoundButton({
     required this.icon,
@@ -44,10 +46,15 @@ class KzRoundButton extends StatelessWidget {
             key: const ValueKey('kz-round-button-circle'),
             dimension: size,
             child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: selected ? scheme.primary : scheme.secondary,
-                shape: BoxShape.circle,
-              ),
+              decoration: selected
+                  ? BoxDecoration(color: scheme.primary, shape: BoxShape.circle)
+                  : BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: scheme.border,
+                        width: KzStroke.hairline,
+                      ),
+                    ),
               child: Center(
                 child: KzIcon(
                   icon,

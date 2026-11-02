@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'rcsp_frame.dart';
@@ -113,29 +114,68 @@ abstract final class RcspCommands {
   }
 }
 
-/// GET_TARGET_INFO response payload: a list of TLVs. Only the feature flags
-/// are read; other items carry the device auth key and addresses.
+/// GET_TARGET_INFO response payload: a list of TLVs. Only identity and
+/// feature items are read; others carry the device auth key and addresses.
 class RcspTargetInfo {
-  RcspTargetInfo._(this.support);
+  RcspTargetInfo._({
+    this.support,
+    this.name,
+    this.vendorId,
+    this.productId,
+    this.uid,
+  });
 
   factory RcspTargetInfo.parse(List<int> payload) {
+    RcspSupport? support;
+    String? name;
+    int? vendorId;
+    int? productId;
+    int? uid;
     for (final item in RcspTlv.parseAll(payload)) {
-      if (item.type == _supportType && item.value.isNotEmpty) {
-        return RcspTargetInfo._(
-          RcspSupport._(
-            item.value[0],
-            item.value.length > 1 ? item.value[1] : 0,
-          ),
-        );
+      final v = item.value;
+      switch (item.type) {
+        case _idsType when v.length >= 6:
+          vendorId = _u16(v, 0);
+          productId = _u16(v, 2);
+          uid = _u16(v, 4);
+        case _idsType when v.length >= 2:
+          vendorId = jieliVendorId;
+          uid = _u16(v, 0);
+        case _nameType when v.isNotEmpty:
+          name = utf8
+              .decode(v, allowMalformed: true)
+              .replaceAll('\u0000', '')
+              .trim();
+        case _supportType when v.isNotEmpty:
+          support = RcspSupport._(v[0], v.length > 1 ? v[1] : 0);
       }
     }
-    return RcspTargetInfo._(null);
+    return RcspTargetInfo._(
+      support: support,
+      name: name == null || name.isEmpty ? null : name,
+      vendorId: vendorId,
+      productId: productId,
+      uid: uid,
+    );
   }
 
+  static const _idsType = 10;
+  static const _nameType = 16;
   static const _supportType = 19;
+
+  /// JieLi's company id, implied by the short form of the ids item.
+  static const jieliVendorId = 0x05d6;
 
   /// Null when the device does not report its feature flags.
   final RcspSupport? support;
+
+  /// Device name as the firmware reports it, if any.
+  final String? name;
+  final int? vendorId;
+  final int? productId;
+  final int? uid;
+
+  static int _u16(List<int> v, int i) => (v[i] << 8) | v[i + 1];
 }
 
 /// Feature flags the device reports about itself (target info TLV 19).

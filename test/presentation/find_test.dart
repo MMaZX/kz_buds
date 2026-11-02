@@ -53,7 +53,7 @@ void main() {
       expect(find.bySemanticsLabel('Play on left earbud'), findsOneWidget);
       expect(find.bySemanticsLabel('Play on right earbud'), findsOneWidget);
       expect(find.text(FindPage.singleSideNote), findsOneWidget);
-      expect(find.text('Stop'), findsNothing);
+      expect(find.text('STOP'), findsNothing);
     });
 
     testWidgets('both plays on both earbuds', (tester) async {
@@ -65,7 +65,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(fake.findSoundTarget, FindTarget.both);
-      expect(find.text('Stop'), findsOneWidget);
+      expect(find.text('STOP'), findsOneWidget);
     });
 
     testWidgets('the home does not show through the page', (tester) async {
@@ -84,12 +84,12 @@ void main() {
       await tester.tap(find.bySemanticsLabel('Play on left earbud'));
       await tester.pumpAndSettle();
       expect(fake.findSoundTarget, FindTarget.left);
-      expect(find.text('Stop'), findsOneWidget);
+      expect(find.text('STOP'), findsOneWidget);
 
-      await tester.tap(find.text('Stop'));
+      await tester.tap(find.text('STOP'));
       await tester.pumpAndSettle();
       expect(fake.findSoundTarget, isNull);
-      expect(find.text('Stop'), findsNothing);
+      expect(find.text('STOP'), findsNothing);
     });
 
     testWidgets('leaving the page stops the sound', (tester) async {

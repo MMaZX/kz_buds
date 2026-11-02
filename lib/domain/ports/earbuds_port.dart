@@ -7,6 +7,11 @@ import '../entities/link_state.dart';
 abstract class EarbudsPort {
   Stream<LinkState> watchConnection();
 
+  /// Connects, or reconnects after a drop. Does nothing while connecting or
+  /// connected. On failure the link state is [LinkState.disconnected] and the
+  /// error is rethrown.
+  Future<void> connect();
+
   Future<Set<Capability>> capabilities();
 
   Stream<BatteryStatus> watchBattery();

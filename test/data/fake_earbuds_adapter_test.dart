@@ -89,4 +89,35 @@ void main() {
       await fake.dispose();
     });
   });
+
+  group('connect', () {
+    test('goes from disconnected through connecting to connected', () async {
+      final fake = FakeEarbudsAdapter(initialLinkState: LinkState.disconnected);
+      final states = <LinkState>[];
+      final sub = fake.watchConnection().listen(states.add);
+      await pumpEventQueue();
+
+      await fake.connect();
+      await pumpEventQueue();
+
+      expect(states, [
+        LinkState.disconnected,
+        LinkState.connecting,
+        LinkState.connected,
+      ]);
+      expect(fake.connectCalls, 1);
+      await sub.cancel();
+      await fake.dispose();
+    });
+
+    test('does nothing while already connected', () async {
+      final fake = FakeEarbudsAdapter();
+
+      await fake.connect();
+
+      expect(fake.connectCalls, 1);
+      expect(await fake.watchConnection().first, LinkState.connected);
+      await fake.dispose();
+    });
+  });
 }

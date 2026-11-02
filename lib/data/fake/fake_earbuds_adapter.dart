@@ -31,7 +31,21 @@ class FakeEarbudsAdapter implements EarbudsPort {
   final _batteryController = StreamController<BatteryStatus>.broadcast();
   final _linkController = StreamController<LinkState>.broadcast();
 
+  int _connectCalls = 0;
+
   AncMode get ancMode => _ancMode;
+
+  /// How many times [connect] was called.
+  int get connectCalls => _connectCalls;
+
+  @override
+  Future<void> connect() async {
+    _connectCalls++;
+    if (_link != LinkState.disconnected) return;
+    updateLinkState(LinkState.connecting);
+    await Future<void>.delayed(Duration.zero);
+    updateLinkState(LinkState.connected);
+  }
 
   /// The earbud currently playing the locating sound, if any.
   Bud? get findSoundBud => _findSoundBud;

@@ -1,0 +1,61 @@
+# Capability Matrix — KZ Carol Pro
+
+States: **proven** (live bytes), **seen in code** (path:line), **seen in app only**, **unknown**.
+
+| Feature | State | Evidence |
+|---------|-------|----------|
+| Battery L/R | proven | ADV type 0: `[L][R][C]`, bit7 charging, bits0-6 % (L20) |
+| Case battery | unknown | Not reported; C byte always 0 (L17, L20) |
+| Physical noise mode | unknown | Not exposed by any connect-time query (L15) |
+| Noise mode set/get | seen in code | op 08/07 mask 0x2000/0x4000, attr 13/14, 9 bytes (VoiceMode.java) |
+| ANC modes (key cycle) | seen in code | C0/C1, ADV type 10, u32 BE bitmask (HandsetManager.java:115-138) |
+| EQ get/set | seen in code | op 07 mask 0x1010/08, attr 4, [mode][10×s8 dB], custom=6 (CommandBuilder.java:150-177) |
+| Bass/treble | seen in code | op 08/07 mask 0x800, attr 11, bass s32 BE, treble s32 BE |
+| Key remap | seen in code | C0/C1, ADV type 2, triplets [key][action][function], 0xFF=cycle ANC (ParseHelper.java:599-616) |
+| Work mode (game mode) | seen in code | C0/C1, ADV type 5, 1 byte (HandsetManager.java:193-194) |
+| Mic channel | seen in code | C0/C1, ADV type 4, 1 byte (MethodChannelImpl.java:132-136) |
+| In-ear detection | seen in code | C1/C0, ADV type 8, 1 byte (BaseManager.java:240-245) |
+| Find buds | seen in code | op 0x19, [1][op][timeout u16 BE][way][player], stop op 0 (CommandBuilder.java:808-813) |
+| Volume | seen in code | op 08/07 mask 2, attr 1, 1 byte (CommandBuilder.java:111-121) |
+| Rename | seen in code | C0, ADV type 1, raw name bytes; may reboot (HandsetManager.java:60-85) |
+| Reboot/shutdown | seen in code | E7, `00` reboot, `01` shutdown (CommandBuilder.java:427-432) |
+| Factory reset | seen in code | FF, raw `03 05` (CustomManager.java:38,54-55,79) — DANGEROUS, never send |
+| LDAC / codec / low latency | unknown | Not found in the bridge (0xD5 defined, unused) |
+| Case button | unknown | No function found (L18) |
+| Auth (E1/SAFER+) | proven | 3 live challenge/response pairs verified (L5, L24) |
+
+## Battery Details
+
+- **Slot 1 = LEFT**, **Slot 2 = RIGHT** (proven, L20)
+- **Case = 0** in every frame (not reported, L17)
+- ADV type 0 format: `[L][R][C]`, bit7 = charging, bits0-6 = percentage
+- C2 frame format: `vid(2) uid(2) pid(2) (chip<<4)|version MAC(6) F L R C X`
+  - F = action (0 dismiss, 1 unconnected, 2 connected, 3 connecting, 4 connectionless)
+  - X = sequence counter
+  - Castor Pro: vid 0x05D6, uid 0, pid 0, chip 2, version 2
+
+## EQ Details
+
+- Attr 4 format: `[mode][10 × s8 dB]`
+- Mode 0 = Flat, gains all 0
+- Custom mode = 6
+- Bit 7 of mode = dynamic EQ with `[n][gains]`
+
+## Noise Mode Details
+
+- Attr 13 (live): 9 bytes `mode, leftMax, rightMax, leftCur, rightCur` (u16 BE)
+- Mode: 0 = off, 1 = ANC, 2 = transparency
+- The firmware does not report the hold-selected mode (returns 1 in all physical modes)
+- Attr 14 (table): saved noise table, 3 × 9 bytes (modes 0, 1, 2)
+
+## Key Remap Details
+
+- ADV type 2: triplets `[key][action][function]`
+- Function 0xFF = cycle ANC modes
+- Key/gesture/action names come from server product data per vid/uid/pid
+
+## Notes
+
+- The app has no hardcoded per-model list (no Castor/Carol/vid/pid strings)
+- All rows are "seen in code" until a live capture proves them
+- Code alone never makes a row "proven"

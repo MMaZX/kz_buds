@@ -113,6 +113,56 @@ abstract final class RcspCommands {
   }
 }
 
+/// GET_TARGET_INFO response payload: a list of TLVs. Only the feature flags
+/// are read; other items carry the device auth key and addresses.
+class RcspTargetInfo {
+  RcspTargetInfo._(this.support);
+
+  factory RcspTargetInfo.parse(List<int> payload) {
+    for (final item in RcspTlv.parseAll(payload)) {
+      if (item.type == _supportType && item.value.isNotEmpty) {
+        return RcspTargetInfo._(
+          RcspSupport._(
+            item.value[0],
+            item.value.length > 1 ? item.value[1] : 0,
+          ),
+        );
+      }
+    }
+    return RcspTargetInfo._(null);
+  }
+
+  static const _supportType = 19;
+
+  /// Null when the device does not report its feature flags.
+  final RcspSupport? support;
+}
+
+/// Feature flags the device reports about itself (target info TLV 19).
+class RcspSupport {
+  const RcspSupport._(this._first, this._second);
+
+  final int _first;
+  final int _second;
+
+  bool get gameMode => _bit(_first, 1);
+  bool get searchDevice => _bit(_first, 2);
+
+  /// The device forbids EQ changes.
+  bool get eqBanned => _bit(_first, 4);
+  bool get anc => _bit(_first, 6);
+  bool get adaptiveAnc => _bit(_second, 1);
+  bool get doubleConnection => _bit(_second, 7);
+
+  static bool _bit(int byte, int bit) => (byte >> bit) & 1 == 1;
+
+  @override
+  String toString() =>
+      'RcspSupport(search: $searchDevice, gameMode: $gameMode, '
+      'anc: $anc, adaptiveAnc: $adaptiveAnc, eqBanned: $eqBanned, '
+      'doubleConnection: $doubleConnection)';
+}
+
 /// GET_SYS_INFO response payload: `[function][TLV...]`.
 class RcspSysInfo {
   RcspSysInfo._(this.function, this.values);

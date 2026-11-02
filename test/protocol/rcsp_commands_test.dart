@@ -91,6 +91,31 @@ void main() {
   });
 
   group('parsers', () {
+    test('target info reads the support flags from TLV 19', () {
+      // 0x44: bit 2 search device, bit 6 ANC; 0x81: bit 0 hearing assist,
+      // bit 7 double connection. TLV 0 (protocol version) is skipped.
+      final info = RcspTargetInfo.parse(hex('02 00 21 03 13 44 81'));
+
+      expect(info.support, isNotNull);
+      expect(info.support!.searchDevice, isTrue);
+      expect(info.support!.anc, isTrue);
+      expect(info.support!.gameMode, isFalse);
+      expect(info.support!.eqBanned, isFalse);
+      expect(info.support!.doubleConnection, isTrue);
+    });
+
+    test('target info with a one-byte TLV 19 leaves the second byte clear', () {
+      final info = RcspTargetInfo.parse(hex('02 13 12'));
+
+      expect(info.support!.gameMode, isTrue);
+      expect(info.support!.eqBanned, isTrue);
+      expect(info.support!.doubleConnection, isFalse);
+    });
+
+    test('target info without TLV 19 reports unknown support', () {
+      expect(RcspTargetInfo.parse(hex('02 00 21')).support, isNull);
+    });
+
     test('sys info splits the function and its attributes', () {
       final info = RcspSysInfo.parse(
         hex('ff 02 00 50 02 01 09 0c 04 00 00 fd fd 04 fa 01 02 02 02 02'),

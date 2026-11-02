@@ -1,7 +1,7 @@
 # KZ Buds
 
-A personal cross-platform application to control KZ true-wireless (TWS) earbuds (such as the KZ Carol Pro) over Bluetooth on Linux and Android.
+Aplicación personal multiplataforma para controlar auriculares true wireless (TWS) de KZ (como los KZ Carol Pro) mediante Bluetooth en Linux y Android.
 
-## Purpose
+## Propósito
 
-This is a personal project created to manage earbud settings—including active noise cancellation (ANC) modes, equalizers, battery levels, and device location/find features—directly from desktop and mobile without relying on proprietary companion apps.
+Proyecto personal creado para gestionar las opciones de los auriculares —incluyendo modos de cancelación activa de ruido (ANC), ecualizadores, niveles de batería y función para encontrar el dispositivo— directamente desde el ordenador o móvil sin depender de aplicaciones propietarias.

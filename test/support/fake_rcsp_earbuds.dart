@@ -9,11 +9,17 @@ import 'package:kz_buds/data/spp/rcsp_spp_session.dart';
 /// In-memory SPP link that plays RCSP earbuds: completes the handshake with
 /// [deviceAuth] and answers ADV_GET_INFO with [advBattery] (`L R C`).
 class FakeRcspEarbuds implements SppLink {
-  FakeRcspEarbuds({RcspAuth? deviceAuth, this.advBattery = const [60, 70, 0]})
-    : _auth = deviceAuth ?? RcspAuth();
+  FakeRcspEarbuds({
+    RcspAuth? deviceAuth,
+    this.advBattery = const [60, 70, 0],
+    this.supportFlags = const [0x44, 0x00],
+  }) : _auth = deviceAuth ?? RcspAuth();
 
   final RcspAuth _auth;
   List<int> advBattery;
+
+  /// Target info TLV 19; the default reports search device and ANC.
+  final List<int> supportFlags;
   final _incoming = StreamController<List<int>>();
   final _ownChallenge = Uint8List.fromList([0x00, ...List.filled(16, 0x5a)]);
   final requests = <RcspFrame>[];
@@ -37,9 +43,16 @@ class FakeRcspEarbuds implements SppLink {
     } else {
       final request = RcspFrame.decode(bytes);
       requests.add(request);
-      final payload = request.opcode == RcspOpcode.advGetInfo
-          ? [0x04, 0x00, ...advBattery]
-          : const <int>[];
+      final payload = switch (request.opcode) {
+        RcspOpcode.advGetInfo => [0x04, 0x00, ...advBattery],
+        RcspOpcode.getTargetInfo => [
+          supportFlags.length + 1,
+          0x13,
+          ...supportFlags,
+        ],
+        RcspOpcode.getSysInfo => const [0xff, 0x02, 0x00, 0x50],
+        _ => const <int>[],
+      };
       _incoming.add(
         RcspFrame.response(
           opcode: request.opcode,

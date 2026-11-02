@@ -1,46 +1,48 @@
-// Live check of the SPP path on Linux: detect paired JieLi earbuds through
-// BlueZ, run the RCSP handshake and read the battery. Read-only: it sends
-// only GET_SYS_INFO and ADV_GET_INFO.
+// Live checks of the SPP path on Linux: detect paired JieLi earbuds through
+// BlueZ, connect them like the OS does, run the RCSP handshake, then:
 //
 //   fvm dart run tool/rcsp_spp_probe.dart
+//       info (default): support flags, battery, volume, EQ. Read-only.
+//   fvm dart run tool/rcsp_spp_probe.dart find [both|left|right] [player]
+//       rings the earbuds for a few seconds, then stops them. player is the
+//       last SEARCH_DEVICE byte (0 = what the KZ app sends, 1 = device).
+//
+// It never sends reboot, factory reset, rename or OTA.
 import 'dart:io';
 
-import 'package:kz_buds/data/protocol/rcsp_commands.dart';
+import 'package:kz_buds/data/rcsp/rcsp_diagnostics.dart';
 import 'package:kz_buds/data/spp/bluez_earbuds_discovery.dart';
+import 'package:kz_buds/data/spp/linux/linux_rcsp_session.dart';
 import 'package:kz_buds/data/spp/linux/linux_rfcomm_link.dart';
-import 'package:kz_buds/data/spp/rcsp_spp_session.dart';
 
-Future<void> main() async {
-  final found = await BluezEarbudsDiscovery().pairedEarbuds();
-  _log('detected ${found.length}: ${found.map((e) => e.name).join(', ')}');
-  if (found.isEmpty) exit(1);
+const _sides = {'both': 0, 'left': 1, 'right': 2};
 
-  final earbuds = found.first;
-  _log('connecting to ${earbuds.name} (${_redact(earbuds.id)})');
+Future<void> main(List<String> args) async {
+  final mode = args.isEmpty ? 'info' : args[0];
+  if (mode != 'info' && mode != 'find') {
+    _log('usage: rcsp_spp_probe.dart [info | find [both|left|right] [0|1]]');
+    exit(64);
+  }
+
   final watch = Stopwatch()..start();
-  final session = await RcspSppSession.open(
-    () => LinuxRfcommLink.connect(earbuds.id),
+  final session = await openLinuxRcspSession(
+    discover: BluezEarbudsDiscovery().pairedEarbuds,
+    connectOs: bluezConnectProfiles,
+    openLink: LinuxRfcommLink.connect,
+    log: _log,
   );
   _log('auth passed in ${watch.elapsedMilliseconds} ms');
   try {
-    final sys = await session.protocol.send(
-      RcspCommands.getSysInfo(
-        function: RcspSysFunction.public,
-        mask: RcspSysAttr.maskOf([
-          RcspSysAttr.battery,
-          RcspSysAttr.volume,
-          RcspSysAttr.eq,
-          RcspSysAttr.noiseLive,
-        ]),
-      ),
-    );
-    final info = RcspSysInfo.parse(sys.payload);
-    _log('sys battery ${info.battery}, volume ${info.volume}');
-    _log('eq ${info.eq}');
-    _log('noise ${info.noise}');
-
-    final adv = await session.protocol.send(RcspCommands.advGetInfo());
-    _log('adv battery ${RcspAdvInfo.parse(adv.payload).battery}');
+    if (mode == 'info') {
+      await rcspInfo(session.protocol, _log);
+    } else {
+      await rcspFind(
+        session.protocol,
+        _log,
+        side: _sides[args.length > 1 ? args[1] : 'both'] ?? 0,
+        player: args.length > 2 ? int.parse(args[2]) : 0,
+      );
+    }
   } finally {
     await session.close();
   }
@@ -48,7 +50,3 @@ Future<void> main() async {
 }
 
 void _log(String message) => stdout.writeln(message);
-
-String _redact(String address) => address.length < 5
-    ? '?'
-    : 'xx:xx:xx:xx:${address.substring(address.length - 5)}';

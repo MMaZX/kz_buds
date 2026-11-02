@@ -45,7 +45,7 @@ class RcspProtocol {
     this.timeout = const Duration(seconds: 3),
     this.retries = defaultRetries,
   }) : _auth = auth ?? RcspAuth() {
-    _subscription = _transport.incoming.listen(_onBytes);
+    _subscription = _transport.incoming.listen(_onBytes, onDone: _onLinkDone);
   }
 
   static const defaultRetries = 2;
@@ -66,9 +66,14 @@ class RcspProtocol {
 
   var _nextSn = 0;
   bool _closed = false;
+  final _linkDone = Completer<void>();
 
   /// Commands the earbuds send on their own (0x09, 0xC2, 0xC4, ...).
   Stream<RcspFrame> get deviceCommands => _deviceCommands.stream;
+
+  /// Completes when the link ends, whether the earbuds dropped it or
+  /// [close] was called.
+  Future<void> get closed => _linkDone.future;
 
   /// App challenge first, then the earbuds' challenge, as the KZ apps do.
   Future<void> authenticate() async {
@@ -139,6 +144,15 @@ class RcspProtocol {
     }
     _pending.clear();
     await _deviceCommands.close();
+    if (!_linkDone.isCompleted) _linkDone.complete();
+  }
+
+  void _onLinkDone() {
+    for (final p in _pending.values) {
+      p.completer.completeError(StateError('RCSP link ended'));
+    }
+    _pending.clear();
+    if (!_linkDone.isCompleted) _linkDone.complete();
   }
 
   void _onBytes(List<int> chunk) {

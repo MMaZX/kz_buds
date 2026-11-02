@@ -226,6 +226,12 @@ void main() {
     expect(frame.payload, hex('00 02 07 01'));
   });
 
+  test('closed completes when the link ends', () async {
+    await transport.close();
+
+    await expectLater(protocol.closed, completes);
+  });
+
   test('close fails a pending request', () async {
     final failure = expectLater(
       protocol.send(RcspCommands.advGetInfo()),

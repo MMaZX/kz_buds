@@ -1,0 +1,75 @@
+import 'dart:async';
+import 'dart:typed_data';
+
+import 'package:kz_buds/data/protocol/rcsp_auth.dart';
+import 'package:kz_buds/data/protocol/rcsp_commands.dart';
+import 'package:kz_buds/data/protocol/rcsp_frame.dart';
+import 'package:kz_buds/data/spp/rcsp_spp_session.dart';
+
+/// In-memory SPP link that plays RCSP earbuds: completes the handshake with
+/// [deviceAuth] and answers ADV_GET_INFO with [advBattery] (`L R C`).
+class FakeRcspEarbuds implements SppLink {
+  FakeRcspEarbuds({RcspAuth? deviceAuth, this.advBattery = const [60, 70, 0]})
+    : _auth = deviceAuth ?? RcspAuth();
+
+  final RcspAuth _auth;
+  List<int> advBattery;
+  final _incoming = StreamController<List<int>>();
+  final _ownChallenge = Uint8List.fromList([0x00, ...List.filled(16, 0x5a)]);
+  final requests = <RcspFrame>[];
+  bool closed = false;
+  var _sn = 0;
+
+  @override
+  Stream<List<int>> get incoming => _incoming.stream;
+
+  @override
+  Future<void> write(List<int> bytes) async {
+    if (closed) throw StateError('link closed');
+    if (bytes.length == 17 && bytes[0] == RcspAuth.challengeFlag) {
+      _incoming.add(_auth.answer(bytes));
+    } else if (RcspAuth.isPass(bytes)) {
+      _incoming.add(_ownChallenge);
+    } else if (bytes.length == 17 && bytes[0] == RcspAuth.answerFlag) {
+      if (_auth.verify(_ownChallenge, bytes)) {
+        _incoming.add(RcspAuth.passMessage);
+      }
+    } else {
+      final request = RcspFrame.decode(bytes);
+      requests.add(request);
+      final payload = request.opcode == RcspOpcode.advGetInfo
+          ? [0x04, 0x00, ...advBattery]
+          : const <int>[];
+      _incoming.add(
+        RcspFrame.response(
+          opcode: request.opcode,
+          status: 0,
+          sn: request.sn,
+          payload: payload,
+        ).encode(),
+      );
+    }
+  }
+
+  /// Pushes an unsolicited C2 status block carrying `L R C`.
+  void pushStatus(List<int> battery) => _incoming.add(
+    RcspFrame.command(
+      opcode: RcspOpcode.advStatus,
+      sn: _sn++,
+      expectsResponse: false,
+      payload: [
+        0x05, 0xd6, 0x00, 0x00, 0x00, 0x00, 0x22, //
+        0, 0, 0, 0, 0, 0, 0x02, ...battery, 0x01,
+      ],
+    ).encode(),
+  );
+
+  /// The earbuds drop the link.
+  Future<void> drop() => _incoming.close();
+
+  @override
+  Future<void> close() async {
+    closed = true;
+    if (!_incoming.isClosed) await _incoming.close();
+  }
+}

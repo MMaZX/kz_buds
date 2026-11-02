@@ -58,4 +58,18 @@ void main() {
       expect(src.contains('riverpod'), isFalse, reason: f.path);
     }
   });
+
+  test('protocol code imports only dart: libraries and itself', () {
+    final import = RegExp(r'''^import\s+['"]([^'"]+)['"]''', multiLine: true);
+    for (final f in dartFiles('lib/data/protocol')) {
+      for (final m in import.allMatches(f.readAsStringSync())) {
+        final uri = m.group(1)!;
+        expect(
+          uri.startsWith('dart:') || !uri.contains(':'),
+          isTrue,
+          reason: '${f.path} imports $uri',
+        );
+      }
+    }
+  });
 }

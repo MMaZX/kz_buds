@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -55,6 +57,23 @@ class DeviceHomePage extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: KzSpace.s24),
+            if (link.value == LinkState.disconnected)
+              Center(
+                child: KzRoundButton(
+                  icon: KzIcons.bluetooth,
+                  label: 'Reconnect',
+                  semanticsLabel: 'Reconnect the earbuds',
+                  onPressed: () => unawaited(
+                    ref
+                        .read(earbudsPortProvider)
+                        .connect()
+                        .catchError(
+                          (Object error) =>
+                              debugPrint('Reconnect failed: $error'),
+                        ),
+                  ),
+                ),
+              ),
             if (connected) ...[
               switch (battery) {
                 AsyncData(:final value) => _BatteryRow(status: value),

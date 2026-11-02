@@ -144,6 +144,31 @@ void main() {
       expect(find.text('L'), findsNothing);
       expect(find.text('Disconnected'), findsWidgets);
     });
+
+    testWidgets('disconnected offers Reconnect, which connects', (
+      tester,
+    ) async {
+      final fake = FakeEarbudsAdapter(initialLinkState: LinkState.disconnected);
+      await pumpApp(tester, fake);
+
+      await tester.tap(find.text('RECONNECT'));
+      await tester.pumpAndSettle();
+
+      expect(fake.connectCalls, 1);
+      expect(find.text('Connected'), findsOneWidget);
+      expect(find.text('RECONNECT'), findsNothing);
+    });
+
+    testWidgets('connected and connecting hide Reconnect', (tester) async {
+      await pumpApp(tester, FakeEarbudsAdapter());
+      expect(find.text('RECONNECT'), findsNothing);
+
+      await pumpApp(
+        tester,
+        FakeEarbudsAdapter(initialLinkState: LinkState.connecting),
+      );
+      expect(find.text('RECONNECT'), findsNothing);
+    });
   });
 
   testWidgets('the hero is a Placeholder until renders exist', (tester) async {

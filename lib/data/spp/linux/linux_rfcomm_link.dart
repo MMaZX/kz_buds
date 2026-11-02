@@ -109,7 +109,7 @@ int _openSpp(List<int> bdaddr, int timeoutSeconds) {
   final fd = _socket(_sockStream, _btprotoRfcomm);
   try {
     // struct sockaddr_rc { sa_family_t; bdaddr_t; uint8_t channel; }
-    _connect(fd, [_afBluetooth, 0, ...bdaddr, channel, 0]);
+    _connect(fd, [_afBluetooth, 0, ...bdaddr, channel, 0], timeoutSeconds);
     return fd;
   } catch (_) {
     _libc.close(fd);
@@ -122,7 +122,17 @@ int _sppChannel(List<int> bdaddr, int timeoutSeconds) {
   try {
     _setTimeouts(fd, timeoutSeconds);
     // struct sockaddr_l2 { family; le16 psm; bdaddr_t; le16 cid; u8 type; }
-    _connect(fd, [_afBluetooth, 0, _sdpPsm, 0, ...bdaddr, 0, 0, 0, 0]);
+    _connect(fd, [
+      _afBluetooth,
+      0,
+      _sdpPsm,
+      0,
+      ...bdaddr,
+      0,
+      0,
+      0,
+      0,
+    ], timeoutSeconds);
     final lists = <int>[];
     var continuation = <int>[];
     for (var tid = 1; ; tid++) {
@@ -184,15 +194,73 @@ int _socket(int type, int protocol) {
   return fd;
 }
 
-void _connect(int fd, List<int> sockaddr) {
+const _einprogress = 115;
+const _etimedout = 110;
+const _econnreset = 104;
+const _soError = 4;
+const _pollOut = 0x004;
+
+/// Drives a blocking `connect()` to its outcome. Both callbacks return 0 or
+/// an errno.
+///
+/// In a Flutter debug process the VM profiler's signals interrupt connect()
+/// with EINTR while the kernel keeps connecting. Unlike TCP, a Bluetooth
+/// socket rejects a second connect() with EBADFD, so the outcome is awaited
+/// with [awaitOutcome] instead of calling connect() again.
+void finishConnect({
+  required int Function() connectOnce,
+  required int Function() awaitOutcome,
+}) {
+  var result = connectOnce();
+  if (result == _eintr || result == _einprogress) result = awaitOutcome();
+  if (result != 0) throw LinuxBluetoothException('connect', result);
+}
+
+void _connect(int fd, List<int> sockaddr, int timeoutSeconds) {
   final addr = calloc<Uint8>(sockaddr.length);
   try {
     addr.asTypedList(sockaddr.length).setAll(0, sockaddr);
-    if (_libc.connect(fd, addr, sockaddr.length) < 0) {
-      throw LinuxBluetoothException('connect', _errno());
-    }
+    finishConnect(
+      connectOnce: () =>
+          _libc.connect(fd, addr, sockaddr.length) < 0 ? _errno() : 0,
+      awaitOutcome: () => _awaitConnected(fd, timeoutSeconds * 1000),
+    );
   } finally {
     calloc.free(addr);
+  }
+}
+
+/// Waits until [fd] is writable (connected) or failed; 0 or an errno.
+int _awaitConnected(int fd, int timeoutMs) {
+  // struct pollfd { int fd; short events; short revents; }
+  final pfd = calloc<Int32>(2);
+  final err = calloc<Int32>();
+  final len = calloc<Uint32>()..value = 4;
+  try {
+    final deadline = DateTime.now().add(Duration(milliseconds: timeoutMs));
+    while (true) {
+      final left = deadline.difference(DateTime.now()).inMilliseconds;
+      if (left <= 0) return _etimedout;
+      pfd[0] = fd;
+      pfd[1] = _pollOut;
+      final n = _libc.poll(pfd.cast(), 1, left);
+      if (n < 0) {
+        if (_errno() == _eintr) continue;
+        return _errno();
+      }
+      if (n == 0) return _etimedout;
+      if (_libc.getsockopt(fd, _solSocket, _soError, err.cast(), len) < 0) {
+        return _errno();
+      }
+      if (err.value != 0) return err.value;
+      final revents = (pfd[1] >> 16) & 0xffff;
+      return (revents & _pollOut) != 0 ? 0 : _econnreset;
+    }
+  } finally {
+    calloc
+      ..free(pfd)
+      ..free(err)
+      ..free(len);
   }
 }
 
@@ -272,6 +340,16 @@ class _Libc {
             IntPtr Function(Int32, Pointer<Uint8>, Size),
             int Function(int, Pointer<Uint8>, int)
           >('write'),
+      poll = lib
+          .lookupFunction<
+            Int32 Function(Pointer<Void>, Uint64, Int32),
+            int Function(Pointer<Void>, int, int)
+          >('poll'),
+      getsockopt = lib
+          .lookupFunction<
+            Int32 Function(Int32, Int32, Int32, Pointer<Void>, Pointer<Uint32>),
+            int Function(int, int, int, Pointer<Void>, Pointer<Uint32>)
+          >('getsockopt'),
       shutdown = lib
           .lookupFunction<Int32 Function(Int32, Int32), int Function(int, int)>(
             'shutdown',
@@ -289,6 +367,8 @@ class _Libc {
   final int Function(int, int, int, Pointer<Void>, int) setsockopt;
   final int Function(int, Pointer<Uint8>, int) read;
   final int Function(int, Pointer<Uint8>, int) write;
+  final int Function(Pointer<Void>, int, int) poll;
+  final int Function(int, int, int, Pointer<Void>, Pointer<Uint32>) getsockopt;
   final int Function(int, int) shutdown;
   final int Function(int) close;
   final Pointer<Int32> Function() errnoLocation;

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bluez/bluez.dart';
 
 import '../../domain/entities/detected_earbuds.dart';
@@ -29,3 +31,57 @@ class BluezEarbudsDiscovery implements EarbudsDiscoveryPort {
     }
   }
 }
+
+/// Asks BlueZ to connect the device (`Device1.Connect`), which brings up its
+/// auto-connect profiles such as A2DP and HFP. Runs even when the device is
+/// already connected: a link opened by our RFCOMM socket alone has no audio.
+Future<void> bluezConnectProfiles(String address) async {
+  final client = BlueZClient();
+  try {
+    await client.connect();
+    final device = client.devices.firstWhere(
+      (d) => d.address.toUpperCase() == address.toUpperCase(),
+      orElse: () => throw StateError('BlueZ does not know the earbuds'),
+    );
+    try {
+      await device.connect();
+    } on BlueZAlreadyConnectedException {
+      // Every profile is already up.
+    } on BlueZInProgressException {
+      // The OS is connecting them right now.
+    }
+  } finally {
+    await client.close();
+  }
+}
+
+/// The device's `Connected` property: the current value on listen, then each
+/// change (BlueZ PropertiesChanged). Emits false once if BlueZ does not know
+/// the device. Closes its D-Bus client when the listener cancels.
+Stream<bool> bluezConnectedChanges(String address) =>
+    Stream.multi((controller) {
+      final client = BlueZClient();
+      StreamSubscription<List<String>>? changes;
+      controller.onCancel = () async {
+        await changes?.cancel();
+        await client.close();
+      };
+      unawaited(() async {
+        try {
+          await client.connect();
+          final device = client.devices
+              .where((d) => d.address.toUpperCase() == address.toUpperCase())
+              .firstOrNull;
+          if (device == null) {
+            controller.add(false);
+            return;
+          }
+          controller.add(device.connected);
+          changes = device.propertiesChanged.listen((names) {
+            if (names.contains('Connected')) controller.add(device.connected);
+          });
+        } catch (error, stack) {
+          controller.addError(error, stack);
+        }
+      }());
+    });

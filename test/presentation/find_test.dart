@@ -2,7 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kz_buds/data/fake/fake_earbuds_adapter.dart';
 import 'package:kz_buds/domain/capabilities/capability.dart';
-import 'package:kz_buds/domain/entities/bud.dart';
+import 'package:kz_buds/domain/entities/find_target.dart';
 import 'package:kz_buds/presentation/pages/find_page.dart';
 
 import '../support/pump_home.dart';
@@ -40,7 +40,8 @@ void main() {
   });
 
   group('find my buds', () {
-    testWidgets('warns before playing and offers both buds', (tester) async {
+    testWidgets('offers both by default, then left and right with a '
+        'firmware note', (tester) async {
       await pumpApp(tester, withFind());
       await openFind(tester);
       expect(find.byType(FindPage), findsOneWidget);
@@ -48,9 +49,23 @@ void main() {
         find.text('Remove the earbuds before playing a sound.'),
         findsOneWidget,
       );
+      expect(find.bySemanticsLabel('Play on both earbuds'), findsOneWidget);
       expect(find.bySemanticsLabel('Play on left earbud'), findsOneWidget);
       expect(find.bySemanticsLabel('Play on right earbud'), findsOneWidget);
+      expect(find.text(FindPage.singleSideNote), findsOneWidget);
       expect(find.text('Stop'), findsNothing);
+    });
+
+    testWidgets('both plays on both earbuds', (tester) async {
+      final fake = withFind();
+      await pumpApp(tester, fake);
+      await openFind(tester);
+
+      await tester.tap(find.bySemanticsLabel('Play on both earbuds'));
+      await tester.pumpAndSettle();
+
+      expect(fake.findSoundTarget, FindTarget.both);
+      expect(find.text('Stop'), findsOneWidget);
     });
 
     testWidgets('the home does not show through the page', (tester) async {
@@ -68,12 +83,12 @@ void main() {
       await openFind(tester);
       await tester.tap(find.bySemanticsLabel('Play on left earbud'));
       await tester.pumpAndSettle();
-      expect(fake.findSoundBud, Bud.left);
+      expect(fake.findSoundTarget, FindTarget.left);
       expect(find.text('Stop'), findsOneWidget);
 
       await tester.tap(find.text('Stop'));
       await tester.pumpAndSettle();
-      expect(fake.findSoundBud, isNull);
+      expect(fake.findSoundTarget, isNull);
       expect(find.text('Stop'), findsNothing);
     });
 
@@ -83,11 +98,11 @@ void main() {
       await openFind(tester);
       await tester.tap(find.bySemanticsLabel('Play on right earbud'));
       await tester.pumpAndSettle();
-      expect(fake.findSoundBud, Bud.right);
+      expect(fake.findSoundTarget, FindTarget.right);
 
       await tester.tap(find.bySemanticsLabel('Back'));
       await tester.pumpAndSettle();
-      expect(fake.findSoundBud, isNull);
+      expect(fake.findSoundTarget, isNull);
     });
   });
 }

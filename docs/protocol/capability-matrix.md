@@ -15,7 +15,8 @@ States: **proven** (live bytes), **seen in code** (path:line), **seen in app onl
 | Work mode (game mode) | seen in code | C0/C1, ADV type 5, 1 byte (HandsetManager.java:193-194) |
 | Mic channel | seen in code | C0/C1, ADV type 4, 1 byte (MethodChannelImpl.java:132-136) |
 | In-ear detection | seen in code | C1/C0, ADV type 8, 1 byte (BaseManager.java:240-245) |
-| Find buds | seen in code | op 0x19, [1][op][timeout u16 BE][way][player], stop op 0 (CommandBuilder.java:808-813) |
+| Find buds | proven | op 0x19, `[1][op][timeout u16 BE][way][player]`, stop op 0; way 0 both, 1 left, 2 right; player 1 (RING_PLAYER_DEVICE) rings the earbuds, player 0 (what the KZ app sends) leaves them silent and the KZ app plays an alarm on the phone instead. Firmware limit (live 2026-11-02): a single side rings only on the earbud holding the link; the other side mutes media and plays nothing. way 0 and way 3 ring both. The app defaults to both |
+| Support flags | proven | GET_TARGET_INFO TLV 19 (ParseHelper.java:383-388); Carol Pro reports search, game mode and ANC; not adaptive ANC, EQ ban or double connection (live 2026-11-02) |
 | Volume | seen in code | op 08/07 mask 2, attr 1, 1 byte (CommandBuilder.java:111-121) |
 | Rename | seen in code | C0, ADV type 1, raw name bytes; may reboot (HandsetManager.java:60-85) |
 | Reboot/shutdown | seen in code | E7, `00` reboot, `01` shutdown (CommandBuilder.java:427-432) |
@@ -58,4 +59,5 @@ States: **proven** (live bytes), **seen in code** (path:line), **seen in app onl
 
 - The app has no hardcoded per-model list (no Castor/Carol/vid/pid strings)
 - All rows are "seen in code" until a live capture proves them
+- The app enables a capability only when the device reports it (TLV 19) and the feature is proven live
 - Code alone never makes a row "proven"

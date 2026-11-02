@@ -19,9 +19,12 @@ final batteryProvider = StreamProvider<BatteryStatus>(
   (ref) => ref.watch(earbudsPortProvider).watchBattery(),
 );
 
-final capabilitiesProvider = FutureProvider<Set<Capability>>(
-  (ref) => ref.watch(earbudsPortProvider).capabilities(),
-);
+/// Read again on every link change: a real device only knows its
+/// capabilities once connected.
+final capabilitiesProvider = FutureProvider<Set<Capability>>((ref) {
+  ref.watch(connectionProvider);
+  return ref.watch(earbudsPortProvider).capabilities();
+});
 
 final ancModeProvider = StreamProvider<AncMode>(
   (ref) => ref.watch(earbudsPortProvider).watchAncMode(),

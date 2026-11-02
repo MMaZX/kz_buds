@@ -3,7 +3,7 @@ import 'dart:async';
 import '../../domain/capabilities/capability.dart';
 import '../../domain/entities/anc_mode.dart';
 import '../../domain/entities/battery_status.dart';
-import '../../domain/entities/bud.dart';
+import '../../domain/entities/find_target.dart';
 import '../../domain/entities/link_state.dart';
 import '../../domain/ports/earbuds_port.dart';
 
@@ -25,7 +25,7 @@ class FakeEarbudsAdapter implements EarbudsPort {
   BatteryStatus _battery;
   LinkState _link;
   AncMode _ancMode = AncMode.off;
-  Bud? _findSoundBud;
+  FindTarget? _findSoundTarget;
 
   final _ancController = StreamController<AncMode>.broadcast();
   final _batteryController = StreamController<BatteryStatus>.broadcast();
@@ -47,8 +47,8 @@ class FakeEarbudsAdapter implements EarbudsPort {
     updateLinkState(LinkState.connected);
   }
 
-  /// The earbud currently playing the locating sound, if any.
-  Bud? get findSoundBud => _findSoundBud;
+  /// What is currently playing the locating sound, if anything.
+  FindTarget? get findSoundTarget => _findSoundTarget;
 
   void updateBattery(BatteryStatus battery) {
     _battery = battery;
@@ -91,15 +91,15 @@ class FakeEarbudsAdapter implements EarbudsPort {
   }
 
   @override
-  Future<void> playFindSound(Bud bud) async {
+  Future<void> playFindSound(FindTarget target) async {
     if (!_capabilities.contains(Capability.findBuds)) {
       throw UnsupportedError('Device does not report Capability.findBuds');
     }
-    _findSoundBud = bud;
+    _findSoundTarget = target;
   }
 
   @override
-  Future<void> stopFindSound() async => _findSoundBud = null;
+  Future<void> stopFindSound() async => _findSoundTarget = null;
 
   Future<void> dispose() async {
     await _ancController.close();

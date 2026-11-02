@@ -4,11 +4,13 @@ import 'package:kz_buds/data/protocol/rcsp_commands.dart';
 import 'package:kz_buds/data/protocol/rcsp_protocol.dart';
 import 'package:kz_buds/data/rcsp/rcsp_earbuds_adapter.dart';
 import 'package:kz_buds/data/spp/rcsp_spp_session.dart';
+import 'package:kz_buds/domain/capabilities/capability.dart';
 import 'package:kz_buds/domain/entities/anc_mode.dart';
 import 'package:kz_buds/domain/entities/battery_status.dart';
-import 'package:kz_buds/domain/entities/bud.dart';
+import 'package:kz_buds/domain/entities/find_target.dart';
 import 'package:kz_buds/domain/entities/link_state.dart';
 
+import '../../protocol/hex.dart';
 import '../../support/fake_rcsp_earbuds.dart';
 
 void main() {
@@ -110,11 +112,57 @@ void main() {
     );
   });
 
-  test('reports no capability until one is proven live', () async {
-    await adapter.connect();
+  group('capabilities', () {
+    test('find buds comes from the device search flag; unproven ones stay '
+        'off', () async {
+      await adapter.connect();
 
-    expect(await adapter.capabilities(), isEmpty);
-    expect(() => adapter.setAncMode(AncMode.ambient), throwsUnsupportedError);
-    expect(() => adapter.playFindSound(Bud.left), throwsUnsupportedError);
+      // The fake also reports ANC, which is not proven live yet.
+      expect(await adapter.capabilities(), {Capability.findBuds});
+      expect(() => adapter.setAncMode(AncMode.ambient), throwsUnsupportedError);
+    });
+
+    test('no find buds when the device does not report it', () async {
+      earbuds = FakeRcspEarbuds(supportFlags: const [0x00]);
+      adapter = build();
+      await adapter.connect();
+
+      expect(await adapter.capabilities(), isEmpty);
+      expect(
+        () => adapter.playFindSound(FindTarget.left),
+        throwsUnsupportedError,
+      );
+    });
+
+    test('empty while disconnected', () async {
+      expect(await adapter.capabilities(), isEmpty);
+    });
+  });
+
+  group('find sound', () {
+    test('maps both, left and right to way 0, 1 and 2 with player 1', () async {
+      await adapter.connect();
+
+      for (final target in FindTarget.values) {
+        await adapter.playFindSound(target);
+      }
+      await adapter.stopFindSound();
+
+      final finds = earbuds.requests
+          .where((r) => r.opcode == RcspOpcode.searchDevice)
+          .map((r) => r.payload)
+          .toList();
+      // player 1: the earbud plays the sound (player 0 is silent, L30).
+      expect(finds, [
+        hex('01 01 00 3c 00 01'),
+        hex('01 01 00 3c 01 01'),
+        hex('01 01 00 3c 02 01'),
+        hex('01 00 00 00 00 00'),
+      ]);
+    });
+
+    test('stop is a no-op while disconnected', () async {
+      await adapter.stopFindSound();
+    });
   });
 }

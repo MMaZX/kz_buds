@@ -13,10 +13,16 @@ final eqSettingsProvider = StreamProvider<EqSettings>(
   (ref) => ref.watch(earbudsPortProvider).watchEq(),
 );
 
-/// The preset's own name, else "Custom" for the editable slot, else its
-/// 1-based number: the RCSP firmware names none of them.
-String eqPresetLabel(EqProfile profile, EqPresetData preset) =>
+/// The preset's own name, else the model's name for that mode ([names],
+/// from the catalog), else "Custom" for the editable slot, else its 1-based
+/// number: the RCSP firmware names none of them.
+String eqPresetLabel(
+  EqProfile profile,
+  EqPresetData preset, {
+  Map<int, String> names = const {},
+}) =>
     preset.name ??
+    names[preset.mode] ??
     (preset.mode == profile.customMode
         ? 'Custom'
         : 'Preset ${preset.mode + 1}');

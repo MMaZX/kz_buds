@@ -56,4 +56,25 @@ void main() {
       'Custom',
     ]);
   });
+
+  test('model names win over numbers but not over the preset own name', () {
+    const profile = EqProfile(
+      frequencies: [1000],
+      presets: [
+        EqPresetData(mode: 0, gains: [0], name: 'Own'),
+        EqPresetData(mode: 1, gains: [0]),
+        EqPresetData(mode: 2, gains: [0]),
+        EqPresetData(mode: 6, gains: [0]),
+      ],
+      customMode: 6,
+      minGain: -12,
+      maxGain: 12,
+    );
+    const names = {0: 'Standard', 1: 'Bass Enhancement'};
+
+    expect(
+      profile.presets.map((p) => eqPresetLabel(profile, p, names: names)),
+      ['Own', 'Bass Enhancement', 'Preset 3', 'Custom'],
+    );
+  });
 }

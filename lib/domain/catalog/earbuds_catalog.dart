@@ -9,6 +9,16 @@ abstract final class EarbudsCatalog {
   static const kzCarolPro = EarbudsModel(
     id: 'kz-carol-pro',
     displayName: 'KZ Carol Pro',
+    // As the KZ app lists them (user, 2026-11-04); modes 4 and 5 are its
+    // two custom slots.
+    eqPresetNames: {
+      0: 'Standard',
+      1: 'Bass Enhancement',
+      2: 'Vocal Enhancement',
+      3: 'High Resolution',
+      4: 'Custom 1',
+      5: 'Custom 2',
+    },
   );
 
   static final _byName = <RegExp, EarbudsModel>{

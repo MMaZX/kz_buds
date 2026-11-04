@@ -65,6 +65,13 @@ void main() {
       return container;
     }
 
+    Future<ProviderContainer> openAdvanced(WidgetTester tester) async {
+      final container = await openEq(tester);
+      await tester.tap(find.text('ADVANCED'));
+      await tester.pumpAndSettle();
+      return container;
+    }
+
     EqSettings? sent(ProviderContainer container) =>
         container.read(eqSettingsProvider).value;
 
@@ -75,14 +82,23 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('shows the equalizer on Flat with the band readouts', (
+    testWidgets('opens on Simple with the device presets', (tester) async {
+      await openEq(tester);
+      expect(find.widgetWithText(KzChip, 'Bass'), findsOneWidget);
+      expect(find.widgetWithText(KzChip, 'Custom'), findsNothing);
+      expect(chipSelected(tester, 'Flat'), isTrue);
+      expect(find.byType(KzEqualizer), findsNothing);
+    });
+
+    testWidgets('opens on Advanced when the earbuds are on custom', (
       tester,
     ) async {
-      await openEq(tester);
+      final fake = withEq();
+      await fake.setEq(EqSettings(mode: 6, gains: List.filled(10, 2)));
+      await pumpApp(tester, fake);
+      await tester.tap(find.bySemanticsLabel('Equalizer'));
+      await tester.pumpAndSettle();
       expect(find.byType(KzEqualizer), findsOneWidget);
-      expect(find.text('F 31HZ'), findsOneWidget);
-      expect(find.text('GAIN 0.0 DB'), findsOneWidget);
-      expect(chipSelected(tester, 'Flat'), isTrue);
     });
 
     testWidgets('choosing Bass sends that preset', (tester) async {
@@ -91,11 +107,19 @@ void main() {
       await tester.pumpAndSettle();
       expect(chipSelected(tester, 'Bass'), isTrue);
       expect(sent(container)?.mode, 1);
-      expect(find.text('+6.0'), findsOneWidget);
+    });
+
+    testWidgets('Advanced shows the equalizer with the band readouts', (
+      tester,
+    ) async {
+      await openAdvanced(tester);
+      expect(find.byType(KzEqualizer), findsOneWidget);
+      expect(find.text('F 31HZ'), findsOneWidget);
+      expect(find.text('GAIN 0.0 DB'), findsOneWidget);
     });
 
     testWidgets('dragging a band sends the custom mode', (tester) async {
-      final container = await openEq(tester);
+      final container = await openAdvanced(tester);
       final box = find.byType(KzEqualizer);
       final geometry = KzEqualizerGeometry(tester.getSize(box), 10);
       final start =
@@ -105,7 +129,6 @@ void main() {
       await tester.pumpAndSettle();
       expect(sent(container)?.mode, FakeEarbudsAdapter.eqDevProfile.customMode);
       expect(sent(container)!.gains.first, greaterThan(0));
-      expect(chipSelected(tester, 'Custom'), isTrue);
     });
 
     testWidgets('undo and redo send the previous gains as custom', (
@@ -113,6 +136,8 @@ void main() {
     ) async {
       final container = await openEq(tester);
       await tester.tap(find.widgetWithText(KzChip, 'Bass'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('ADVANCED'));
       await tester.pumpAndSettle();
       await tapVisible(tester, find.bySemanticsLabel('Undo'));
       expect(sent(container)?.gains, List.filled(10, 0.0));
@@ -126,6 +151,8 @@ void main() {
     testWidgets('Reset sends flat gains', (tester) async {
       final container = await openEq(tester);
       await tester.tap(find.widgetWithText(KzChip, 'Bass'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('ADVANCED'));
       await tester.pumpAndSettle();
       await tapVisible(tester, find.text('RESET'));
       expect(sent(container)?.gains, List.filled(10, 0.0));

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../domain/entities/eq_settings.dart';
 import '../providers/earbuds_providers.dart';
@@ -26,6 +27,7 @@ class EqPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(eqProfileProvider);
+    final settings = ref.watch(eqSettingsProvider).value;
     final theme = KzTheme.of(context);
 
     return KzPage(
@@ -37,7 +39,12 @@ class EqPage extends ConsumerWidget {
             const KzPageHeader(title: 'Equalizer'),
             const SizedBox(height: KzSpace.s24),
             switch (profile.value) {
-              final EqProfile p => _EqEditor(key: ValueKey(p), profile: p),
+              final EqProfile p when settings != null => _EqEditor(
+                key: ValueKey(p),
+                profile: p,
+                initial: settings,
+              ),
+              EqProfile() => const SizedBox.shrink(),
               null when profile.isLoading => const SizedBox.shrink(),
               null => Text(
                 'The equalizer is not available on these earbuds.',
@@ -54,14 +61,20 @@ class EqPage extends ConsumerWidget {
   }
 }
 
+/// Simple picks one of the device presets; Advanced edits the custom mode.
+enum _EqTab { simple, advanced }
+
 /// Edits one profile. The equalizer owns selection, live drags and undo;
 /// every committed change is sent to the earbuds: a preset with its own
 /// mode, anything else as the custom mode. Settings that arrive from the
 /// earbuds become the new baseline.
 class _EqEditor extends ConsumerStatefulWidget {
-  const _EqEditor({required this.profile, super.key});
+  const _EqEditor({required this.profile, required this.initial, super.key});
 
   final EqProfile profile;
+
+  /// What the earbuds held when the editor opened.
+  final EqSettings initial;
 
   @override
   ConsumerState<_EqEditor> createState() => _EqEditorState();
@@ -79,15 +92,19 @@ class _EqEditorState extends ConsumerState<_EqEditor> {
 
   EqProfile get _profile => widget.profile;
 
+  /// Opens on Advanced when the earbuds are already on the custom mode. A
+  /// controller, not `value`: ShadTabs re-selects `value` on every rebuild.
+  late final ShadTabsController<_EqTab> _tabs;
+
   @override
   void initState() {
     super.initState();
-    _device =
-        ref.read(eqSettingsProvider).value ??
-        EqSettings(
-          mode: _profile.customMode,
-          gains: List.filled(_profile.frequencies.length, 0),
-        );
+    _device = widget.initial;
+    _tabs = ShadTabsController(
+      value: _device.mode == _profile.customMode
+          ? _EqTab.advanced
+          : _EqTab.simple,
+    );
     _eq = KzEqualizerController(
       gains: _device.gains,
       min: _profile.minGain,
@@ -99,6 +116,7 @@ class _EqEditorState extends ConsumerState<_EqEditor> {
 
   @override
   void dispose() {
+    _tabs.dispose();
     _eq
       ..removeListener(_onCommitted)
       ..dispose();
@@ -148,28 +166,44 @@ class _EqEditorState extends ConsumerState<_EqEditor> {
       }
     });
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Wrap(
-          spacing: KzSpace.s8,
-          runSpacing: KzSpace.s8,
-          children: [
-            for (final preset in _profile.presets)
-              KzChip(
-                label: eqPresetLabel(_profile, preset),
-                selected: _device.mode == preset.mode,
-                onPressed: () => _selectPreset(preset),
-              ),
-          ],
+    final names = ref.watch(earbudsModelProvider)?.eqPresetNames ?? const {};
+
+    return ShadTabs<_EqTab>(
+      controller: _tabs,
+      gap: KzSpace.s24,
+      tabs: [
+        ShadTab(
+          value: _EqTab.simple,
+          content: Wrap(
+            spacing: KzSpace.s8,
+            runSpacing: KzSpace.s8,
+            children: [
+              for (final preset in _profile.presets)
+                if (preset.mode != _profile.customMode)
+                  KzChip(
+                    label: eqPresetLabel(_profile, preset, names: names),
+                    selected: _device.mode == preset.mode,
+                    onPressed: () => _selectPreset(preset),
+                  ),
+            ],
+          ),
+          child: const Text('SIMPLE'),
         ),
-        const SizedBox(height: KzSpace.s24),
-        KzEqualizer(controller: _eq, frequencies: _profile.frequencies),
-        const SizedBox(height: KzSpace.s16),
-        ListenableBuilder(
-          listenable: _eq,
-          builder: (context, _) =>
-              _Controls(eq: _eq, frequencies: _profile.frequencies),
+        ShadTab(
+          value: _EqTab.advanced,
+          content: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              KzEqualizer(controller: _eq, frequencies: _profile.frequencies),
+              const SizedBox(height: KzSpace.s16),
+              ListenableBuilder(
+                listenable: _eq,
+                builder: (context, _) =>
+                    _Controls(eq: _eq, frequencies: _profile.frequencies),
+              ),
+            ],
+          ),
+          child: const Text('ADVANCED'),
         ),
       ],
     );

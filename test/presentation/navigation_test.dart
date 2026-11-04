@@ -7,17 +7,20 @@ import 'package:kz_buds/domain/entities/anc_mode.dart';
 import 'package:kz_buds/domain/entities/eq_settings.dart';
 import 'package:kz_buds/presentation/providers/eq_providers.dart';
 import 'package:kz_buds/presentation/widgets/equalizer/kz_equalizer.dart';
-import 'package:kz_buds/presentation/widgets/kz_chip.dart';
 import 'package:kz_buds/presentation/widgets/kz_nav_pill.dart';
 import 'package:kz_buds/presentation/widgets/noise_control_sheet.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../support/pump_home.dart';
 
 FakeEarbudsAdapter withEq() =>
     FakeEarbudsAdapter(capabilities: {Capability.anc, Capability.eq});
 
-bool chipSelected(WidgetTester tester, String label) =>
-    tester.widget<KzChip>(find.widgetWithText(KzChip, label)).selected;
+Finder preset(String label) => find.widgetWithText(ShadButton, label);
+
+bool presetSelected(WidgetTester tester, String label) =>
+    tester.widget<ShadButton>(preset(label)).variant ==
+    ShadButtonVariant.primary;
 
 void main() {
   group('navigation shell', () {
@@ -83,9 +86,9 @@ void main() {
 
     testWidgets('opens on Simple with the device presets', (tester) async {
       await openEq(tester);
-      expect(find.widgetWithText(KzChip, 'Bass'), findsOneWidget);
-      expect(find.widgetWithText(KzChip, 'Custom'), findsNothing);
-      expect(chipSelected(tester, 'Flat'), isTrue);
+      expect(preset('Bass'), findsOneWidget);
+      expect(preset('Custom'), findsNothing);
+      expect(presetSelected(tester, 'Flat'), isTrue);
       expect(find.byType(KzEqualizer), findsNothing);
     });
 
@@ -102,9 +105,9 @@ void main() {
 
     testWidgets('choosing Bass sends that preset', (tester) async {
       final container = await openEq(tester);
-      await tester.tap(find.widgetWithText(KzChip, 'Bass'));
+      await tester.tap(preset('Bass'));
       await tester.pumpAndSettle();
-      expect(chipSelected(tester, 'Bass'), isTrue);
+      expect(presetSelected(tester, 'Bass'), isTrue);
       expect(sent(container)?.mode, 1);
     });
 
@@ -134,7 +137,7 @@ void main() {
       tester,
     ) async {
       final container = await openEq(tester);
-      await tester.tap(find.widgetWithText(KzChip, 'Bass'));
+      await tester.tap(preset('Bass'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('ADVANCED'));
       await tester.pumpAndSettle();
@@ -149,7 +152,7 @@ void main() {
 
     testWidgets('Reset sends flat gains', (tester) async {
       final container = await openEq(tester);
-      await tester.tap(find.widgetWithText(KzChip, 'Bass'));
+      await tester.tap(preset('Bass'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('ADVANCED'));
       await tester.pumpAndSettle();

@@ -14,7 +14,6 @@ import '../theme/kz_theme.dart';
 import '../widgets/equalizer/kz_equalizer.dart';
 import '../widgets/equalizer/kz_equalizer_controller.dart';
 import '../widgets/kz_block_button.dart';
-import '../widgets/kz_chip.dart';
 import '../widgets/kz_page.dart';
 import '../widgets/kz_page_header.dart';
 import '../widgets/kz_readout_pill.dart';
@@ -174,16 +173,18 @@ class _EqEditorState extends ConsumerState<_EqEditor> {
       tabs: [
         ShadTab(
           value: _EqTab.simple,
-          content: Wrap(
+          content: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             spacing: KzSpace.s8,
-            runSpacing: KzSpace.s8,
             children: [
               for (final preset in _profile.presets)
                 if (preset.mode != _profile.customMode)
-                  KzChip(
-                    label: eqPresetLabel(_profile, preset, names: names),
-                    selected: _device.mode == preset.mode,
+                  ShadButton.raw(
+                    variant: _device.mode == preset.mode
+                        ? ShadButtonVariant.primary
+                        : ShadButtonVariant.outline,
                     onPressed: () => _selectPreset(preset),
+                    child: Text(eqPresetLabel(_profile, preset, names: names)),
                   ),
             ],
           ),

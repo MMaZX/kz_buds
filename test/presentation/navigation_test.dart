@@ -5,12 +5,11 @@ import 'package:kz_buds/data/fake/fake_earbuds_adapter.dart';
 import 'package:kz_buds/domain/capabilities/capability.dart';
 import 'package:kz_buds/domain/entities/anc_mode.dart';
 import 'package:kz_buds/domain/entities/eq_settings.dart';
-import 'package:kz_buds/presentation/pages/anc_page.dart';
 import 'package:kz_buds/presentation/providers/eq_providers.dart';
-import 'package:kz_buds/presentation/theme/kz_palette.dart';
 import 'package:kz_buds/presentation/widgets/equalizer/kz_equalizer.dart';
 import 'package:kz_buds/presentation/widgets/kz_chip.dart';
 import 'package:kz_buds/presentation/widgets/kz_nav_pill.dart';
+import 'package:kz_buds/presentation/widgets/noise_control_sheet.dart';
 
 import '../support/pump_home.dart';
 
@@ -159,83 +158,52 @@ void main() {
     });
   });
 
-  group('noise control page', () {
+  group('noise control sheet', () {
     Future<void> openAnc(WidgetTester tester) async {
       await tester.tap(find.bySemanticsLabel('Noise control details'));
       await tester.pumpAndSettle();
     }
 
-    testWidgets('opens from the home card and lists the three modes', (
-      tester,
-    ) async {
+    testWidgets('opens over the home with the three modes', (tester) async {
       await pumpApp(tester, FakeEarbudsAdapter());
       await openAnc(tester);
-      expect(find.text('Noise control'), findsOneWidget);
-      expect(find.text('Reduces outside noise'), findsOneWidget);
-      expect(find.text('Lets outside sound in'), findsOneWidget);
-      expect(find.text('No processing'), findsOneWidget);
+      expect(find.byType(NoiseControlSheet), findsOneWidget);
+      expect(find.text('NOISE CANCELLING'), findsOneWidget);
+      expect(find.text('AMBIENT'), findsOneWidget);
+      expect(find.text('OFF'), findsOneWidget);
+      // The home stays underneath: no page was pushed.
+      expect(find.byType(Placeholder), findsOneWidget);
     });
 
-    testWidgets('choosing a mode sets it on the device', (tester) async {
+    testWidgets('choosing a mode sets it on the device and selects it', (
+      tester,
+    ) async {
       final fake = FakeEarbudsAdapter();
       await pumpApp(tester, fake);
       await openAnc(tester);
-      await tester.tap(find.text('Lets outside sound in'));
+      await tester.tap(find.bySemanticsLabel('Ambient'));
       await tester.pumpAndSettle();
       expect(fake.ancMode, AncMode.ambient);
-    });
-
-    testWidgets('a pushed page is opaque and slides in, never fades', (
-      tester,
-    ) async {
-      await pumpApp(tester, FakeEarbudsAdapter());
-      await tester.tap(find.bySemanticsLabel('Noise control details'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
-
       expect(
-        find.ancestor(
-          of: find.byType(AncPage),
-          matching: find.byType(FadeTransition),
-        ),
-        findsNothing,
-      );
-      expect(
-        find.ancestor(
-          of: find.byType(AncPage),
-          matching: find.byType(SlideTransition),
-        ),
-        findsWidgets,
-      );
-      expect(
-        find.ancestor(
-          of: find.byType(AncPage),
-          matching: find.byWidgetPredicate(
-            (w) => w is ColoredBox && w.color == KzPalette.inkBg,
-          ),
-        ),
-        // The app background plus the route's own opaque background.
-        findsNWidgets(2),
+        tester.getSemantics(find.bySemanticsLabel('Ambient')),
+        isSemantics(label: 'Ambient', isSelected: true),
       );
     });
 
-    testWidgets('the home does not show through the page', (tester) async {
-      await pumpApp(tester, FakeEarbudsAdapter());
-      expect(find.byType(Placeholder), findsOneWidget);
-      await openAnc(tester);
-      expect(find.text('Noise control'), findsOneWidget);
-      expect(find.byType(Placeholder), findsNothing);
-      expect(find.text('KZ Buds'), findsNothing);
-      expect(find.text('NOISE CONTROL'), findsNothing);
-    });
-
-    testWidgets('back returns to the home', (tester) async {
+    testWidgets('is at most 460 px wide and centered', (tester) async {
       await pumpApp(tester, FakeEarbudsAdapter());
       await openAnc(tester);
-      await tester.tap(find.bySemanticsLabel('Back'));
+      final rect = tester.getRect(find.byKey(NoiseControlSheet.cardKey));
+      expect(rect.width, NoiseControlSheet.maxWidth);
+      expect(rect.center.dx, closeTo(400, 0.5));
+    });
+
+    testWidgets('tapping the barrier closes it', (tester) async {
+      await pumpApp(tester, FakeEarbudsAdapter());
+      await openAnc(tester);
+      await tester.tapAt(const Offset(10, 10));
       await tester.pumpAndSettle();
-      expect(find.text('Noise control'), findsNothing);
-      expect(find.byType(Placeholder), findsOneWidget);
+      expect(find.byType(NoiseControlSheet), findsNothing);
     });
   });
 }

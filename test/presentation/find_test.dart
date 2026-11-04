@@ -11,7 +11,7 @@ FakeEarbudsAdapter withFind() =>
     FakeEarbudsAdapter(capabilities: {Capability.findBuds});
 
 Future<void> openFind(WidgetTester tester) async {
-  await tester.tap(find.text('FIND'));
+  await tester.tap(find.bySemanticsLabel('Find my buds'));
   await tester.pumpAndSettle();
 }
 
@@ -21,19 +21,19 @@ void main() {
       tester,
     ) async {
       await pumpApp(tester, FakeEarbudsAdapter());
-      expect(find.text('FIND'), findsNothing);
+      expect(find.bySemanticsLabel('Find my buds'), findsNothing);
     });
 
-    testWidgets('TOUCH appears only with buttonRemap and opens it', (
+    testWidgets('CONTROLS appears only with buttonRemap and opens it', (
       tester,
     ) async {
       await pumpApp(tester, FakeEarbudsAdapter());
-      expect(find.text('TOUCH'), findsNothing);
+      expect(find.text('CONTROLS'), findsNothing);
       await pumpApp(
         tester,
         FakeEarbudsAdapter(capabilities: {Capability.buttonRemap}),
       );
-      await tester.tap(find.text('TOUCH'));
+      await tester.tap(find.text('CONTROLS'));
       await tester.pumpAndSettle();
       expect(find.text('Touch controls'), findsOneWidget);
     });
@@ -74,7 +74,7 @@ void main() {
       await openFind(tester);
       expect(find.byType(FindPage), findsOneWidget);
       expect(find.byType(Placeholder), findsNothing);
-      expect(find.text('KZ Buds'), findsNothing);
+      expect(find.text('KZ BUDS'), findsNothing);
     });
 
     testWidgets('playing shows Stop and tells the device', (tester) async {

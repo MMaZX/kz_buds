@@ -26,6 +26,7 @@ abstract final class KzPalette {
   static const paperDim = Color(0xFF555555);
   static const paperText = Color(0xFF111111);
   static const white = Color(0xFFFFFFFF);
+  static const transparent = Color(0x00000000);
 
   // Signal red accent: reads as text on its background and carries white
   // text on top of it (AA both ways).

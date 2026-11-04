@@ -29,7 +29,7 @@ void main() {
     'settings': (t) async => t.tap(find.bySemanticsLabel('Settings')),
     'noise control': (t) async =>
         t.tap(find.bySemanticsLabel('Noise control details')),
-    'find': (t) async => t.tap(find.text('FIND')),
+    'find': (t) async => t.tap(find.bySemanticsLabel('Find my buds')),
   };
 
   for (final preference in [KzThemePreference.dark, KzThemePreference.light]) {

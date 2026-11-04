@@ -37,3 +37,5 @@ flutter:
           weight: 500
         - asset: assets/fonts/inter/InterDisplay-SemiBold.ttf
           weight: 600
+        - asset: assets/fonts/inter/InterDisplay-Black.ttf
+          weight: 900

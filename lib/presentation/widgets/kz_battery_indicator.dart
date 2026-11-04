@@ -5,7 +5,7 @@ import '../theme/kz_icons.dart';
 import '../theme/kz_metrics.dart';
 import '../theme/kz_theme.dart';
 
-/// Label, level and a thin bar. A `null` level means the device does not
+/// Level and label over a short bar. A `null` level means the device does not
 /// report it, so nothing is drawn (AGENTS rule 4). Critical and charging
 /// states always carry an icon, never color alone.
 class KzBatteryIndicator extends StatelessWidget {
@@ -19,6 +19,8 @@ class KzBatteryIndicator extends StatelessWidget {
   final String label;
   final int? level;
   final bool charging;
+
+  static const barWidth = 56.0;
 
   @override
   Widget build(BuildContext context) {
@@ -36,64 +38,63 @@ class KzBatteryIndicator extends StatelessWidget {
     return Semantics(
       label: '$label battery $percent%$status',
       excludeSemantics: true,
-      child: IntrinsicWidth(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  label,
-                  style: theme.typography.overline.copyWith(
-                    color: theme.scheme.mutedForeground,
-                  ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        spacing: KzSpace.s8,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            spacing: KzSpace.s4,
+            children: [
+              Text(
+                '$percent%',
+                style: theme.typography.label.copyWith(
+                  color: levelColor,
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
-                if (charging) ...[
-                  const SizedBox(width: KzSpace.s4),
-                  KzIcon(
-                    KzIcons.batteryCharging,
-                    size: 14,
-                    color: colors.success,
-                  ),
-                ] else if (critical) ...[
-                  const SizedBox(width: KzSpace.s4),
-                  KzIcon(
-                    KzIcons.batteryLow,
-                    size: 14,
-                    color: colors.batteryCritical,
-                  ),
-                ],
+              ),
+              Text(
+                label,
+                style: theme.typography.label.copyWith(
+                  color: theme.scheme.foreground,
+                ),
+              ),
+              if (charging) ...[
+                KzIcon(
+                  KzIcons.batteryCharging,
+                  size: 14,
+                  color: colors.success,
+                ),
+              ] else if (critical) ...[
+                KzIcon(
+                  KzIcons.batteryLow,
+                  size: 14,
+                  color: colors.batteryCritical,
+                ),
               ],
+            ],
+          ),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: colors.batteryTrack,
+              borderRadius: BorderRadius.circular(KzRadii.pill),
             ),
-            Text(
-              '$percent%',
-              style: theme.typography.numeralL.copyWith(color: levelColor),
-            ),
-            const SizedBox(height: KzSpace.s4),
-            DecoratedBox(
-              decoration: BoxDecoration(
-                color: colors.batteryTrack,
-                borderRadius: BorderRadius.circular(KzRadii.pill),
-              ),
-              child: SizedBox(
-                height: KzStroke.batteryBar,
-                width: double.infinity,
-                child: FractionallySizedBox(
-                  alignment: Alignment.centerLeft,
-                  widthFactor: percent / 100,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: barColor,
-                      borderRadius: BorderRadius.circular(KzRadii.pill),
-                    ),
+            child: SizedBox(
+              height: KzStroke.batteryBar,
+              width: barWidth,
+              child: FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                widthFactor: percent / 100,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: barColor,
+                    borderRadius: BorderRadius.circular(KzRadii.pill),
                   ),
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

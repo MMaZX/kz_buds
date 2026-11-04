@@ -4,7 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kz_buds/data/fake/fake_earbuds_adapter.dart';
 import 'package:kz_buds/presentation/app_info.dart';
 import 'package:kz_buds/presentation/providers/theme_providers.dart';
-import 'package:kz_buds/presentation/providers/visual_settings_providers.dart';
 import 'package:kz_buds/presentation/theme/kz_palette.dart';
 import 'package:kz_buds/presentation/theme/kz_theme_preference.dart';
 import 'package:kz_buds/presentation/widgets/kz_chip.dart';
@@ -48,15 +47,13 @@ void main() {
     expect(find.widgetWithText(KzChip, 'Ink'), findsOneWidget);
   });
 
-  testWidgets('the reduce transparency switch updates the setting', (
+  testWidgets('offers no reduce transparency setting: nothing is glass', (
     tester,
   ) async {
-    final container = await pumpApp(tester, FakeEarbudsAdapter());
+    await pumpApp(tester, FakeEarbudsAdapter());
     await openSettings(tester);
-    expect(container.read(visualSettingsProvider).reduceTransparency, isFalse);
-    await tester.tap(find.byType(ShadSwitch));
-    await tester.pumpAndSettle();
-    expect(container.read(visualSettingsProvider).reduceTransparency, isTrue);
+    expect(find.text('Reduce transparency'), findsNothing);
+    expect(find.byType(ShadSwitch), findsNothing);
   });
 
   group('about', () {

@@ -2,17 +2,16 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kz_buds/data/fake/fake_earbuds_adapter.dart';
 import 'package:kz_buds/domain/capabilities/capability.dart';
-import 'package:kz_buds/domain/entities/anc_mode.dart';
 import 'package:kz_buds/domain/entities/battery_status.dart';
+import 'package:kz_buds/domain/entities/earbuds_identity.dart';
 import 'package:kz_buds/domain/entities/link_state.dart';
+import 'package:kz_buds/presentation/providers/navigation_providers.dart';
+import 'package:kz_buds/presentation/theme/kz_model_art.dart';
 import 'package:kz_buds/presentation/theme/kz_palette.dart';
 import 'package:kz_buds/presentation/theme/kz_theme_preference.dart';
-import 'package:kz_buds/presentation/widgets/kz_chip.dart';
+import 'package:kz_buds/presentation/widgets/noise_control_sheet.dart';
 
 import '../support/pump_home.dart';
-
-bool chipSelected(WidgetTester tester, String label) =>
-    tester.widget<KzChip>(find.widgetWithText(KzChip, label)).selected;
 
 void main() {
   group('battery', () {
@@ -20,7 +19,7 @@ void main() {
       await pumpApp(tester, FakeEarbudsAdapter());
       expect(find.text('L'), findsOneWidget);
       expect(find.text('R'), findsOneWidget);
-      expect(find.text('Case'), findsOneWidget);
+      expect(find.text('C'), findsOneWidget);
       expect(find.text('80%'), findsOneWidget);
       expect(find.text('78%'), findsOneWidget);
       expect(find.text('60%'), findsOneWidget);
@@ -35,7 +34,7 @@ void main() {
       );
       expect(find.text('L'), findsOneWidget);
       expect(find.text('R'), findsOneWidget);
-      expect(find.text('Case'), findsNothing);
+      expect(find.text('C'), findsNothing);
     });
 
     testWidgets('hides a bud that is not reported', (tester) async {
@@ -47,7 +46,7 @@ void main() {
       );
       expect(find.text('L'), findsNothing);
       expect(find.text('R'), findsOneWidget);
-      expect(find.text('Case'), findsOneWidget);
+      expect(find.text('C'), findsOneWidget);
     });
 
     testWidgets('updates live', (tester) async {
@@ -56,35 +55,70 @@ void main() {
       fake.updateBattery(const BatteryStatus(left: 11, right: 22));
       await tester.pumpAndSettle();
       expect(find.text('11%'), findsOneWidget);
-      expect(find.text('Case'), findsNothing);
+      expect(find.text('C'), findsNothing);
     });
   });
 
   group('noise control', () {
-    testWidgets('chips show only with the anc capability', (tester) async {
+    testWidgets('shows only with the anc capability', (tester) async {
       await pumpApp(tester, FakeEarbudsAdapter());
       expect(find.text('NOISE CONTROL'), findsOneWidget);
-      expect(find.widgetWithText(KzChip, 'ANC'), findsOneWidget);
-      expect(find.widgetWithText(KzChip, 'Ambient'), findsOneWidget);
-      expect(find.widgetWithText(KzChip, 'Off'), findsOneWidget);
     });
 
-    testWidgets('no anc capability hides the whole card', (tester) async {
+    testWidgets('no anc capability hides it', (tester) async {
       await pumpApp(tester, FakeEarbudsAdapter(capabilities: {}));
       expect(find.text('NOISE CONTROL'), findsNothing);
-      expect(find.byType(KzChip), findsNothing);
     });
 
-    testWidgets('tapping a chip sets the mode and selects it', (tester) async {
-      final fake = FakeEarbudsAdapter();
-      await pumpApp(tester, fake);
-      expect(chipSelected(tester, 'Off'), isTrue);
-
-      await tester.tap(find.widgetWithText(KzChip, 'Ambient'));
+    testWidgets('opens the noise control sheet', (tester) async {
+      await pumpApp(tester, FakeEarbudsAdapter());
+      await tester.tap(find.bySemanticsLabel('Noise control details'));
       await tester.pumpAndSettle();
-      expect(fake.ancMode, AncMode.ambient);
-      expect(chipSelected(tester, 'Ambient'), isTrue);
-      expect(chipSelected(tester, 'Off'), isFalse);
+      expect(find.byType(NoiseControlSheet), findsOneWidget);
+    });
+  });
+
+  group('shortcuts', () {
+    testWidgets('equalizer and controls follow their capabilities', (
+      tester,
+    ) async {
+      await pumpApp(tester, FakeEarbudsAdapter());
+      expect(find.text('EQUALIZER'), findsNothing);
+      expect(find.text('CONTROLS'), findsNothing);
+
+      await pumpApp(
+        tester,
+        FakeEarbudsAdapter(
+          capabilities: {Capability.eq, Capability.buttonRemap},
+        ),
+      );
+      expect(find.text('EQUALIZER'), findsOneWidget);
+      expect(find.text('CONTROLS'), findsOneWidget);
+    });
+
+    testWidgets('equalizer opens the equalizer tab', (tester) async {
+      final container = await pumpApp(
+        tester,
+        FakeEarbudsAdapter(capabilities: {Capability.eq}),
+      );
+      await tester.tap(find.text('EQUALIZER'));
+      await tester.pumpAndSettle();
+      expect(container.read(selectedTabProvider), KzTab.eq);
+    });
+
+    testWidgets('the settings icon opens the settings tab', (tester) async {
+      final container = await pumpApp(tester, FakeEarbudsAdapter());
+      await tester.tap(find.bySemanticsLabel('Open settings'));
+      await tester.pumpAndSettle();
+      expect(container.read(selectedTabProvider), KzTab.settings);
+    });
+
+    testWidgets('the title is the model name', (tester) async {
+      await pumpApp(
+        tester,
+        FakeEarbudsAdapter(identity: const EarbudsIdentity(name: 'CAROL PRO')),
+      );
+      expect(find.text('KZ CAROL PRO'), findsOneWidget);
     });
   });
 
@@ -144,6 +178,45 @@ void main() {
       expect(find.text('L'), findsNothing);
       expect(find.text('Disconnected'), findsWidgets);
     });
+
+    testWidgets('disconnected offers Reconnect, which connects', (
+      tester,
+    ) async {
+      final fake = FakeEarbudsAdapter(initialLinkState: LinkState.disconnected);
+      await pumpApp(tester, fake);
+
+      await tester.tap(find.text('RECONNECT'));
+      await tester.pumpAndSettle();
+
+      expect(fake.connectCalls, 1);
+      expect(find.text('Connected'), findsOneWidget);
+      expect(find.text('RECONNECT'), findsNothing);
+    });
+
+    testWidgets('connected and connecting hide Reconnect', (tester) async {
+      await pumpApp(tester, FakeEarbudsAdapter());
+      expect(find.text('RECONNECT'), findsNothing);
+
+      await pumpApp(
+        tester,
+        FakeEarbudsAdapter(initialLinkState: LinkState.connecting),
+      );
+      expect(find.text('RECONNECT'), findsNothing);
+    });
+  });
+
+  testWidgets('a recognised model shows its artwork as the hero', (
+    tester,
+  ) async {
+    await pumpApp(
+      tester,
+      FakeEarbudsAdapter(identity: const EarbudsIdentity(name: 'CAROL PRO')),
+    );
+
+    final image = tester.widget<Image>(find.byType(Image));
+    expect((image.image as AssetImage).assetName, KzModelArt.kzCarolPro);
+    expect(find.bySemanticsLabel('KZ Carol Pro'), findsOneWidget);
+    expect(find.byType(Placeholder), findsNothing);
   });
 
   testWidgets('the hero is a Placeholder until renders exist', (tester) async {

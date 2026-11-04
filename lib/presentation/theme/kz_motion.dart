@@ -17,8 +17,13 @@ class KzMotion {
   Duration get base => _d(200);
   Duration get slow => _d(320);
 
+  /// A value moving to a new position (sliders, markers): fast, then a
+  /// long soft landing.
+  Duration get value => _d(240);
+
   static const Curve pressCurve = Curves.easeOut;
   static const Curve fastCurve = Curves.easeOutCubic;
   static const Curve baseCurve = Curves.easeInOutCubic;
   static const Curve slowCurve = Cubic(0.2, 0, 0, 1);
+  static const Curve valueCurve = Curves.easeOutExpo;
 }

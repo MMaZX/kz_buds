@@ -1,9 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../providers/theme_providers.dart';
-import '../providers/visual_settings_providers.dart';
 import '../theme/kz_icons.dart';
 import '../theme/kz_metrics.dart';
 import '../theme/kz_theme.dart';
@@ -29,7 +27,6 @@ class SettingsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final preference = ref.watch(themePreferenceProvider);
-    final settings = ref.watch(visualSettingsProvider);
 
     return KzPage(
       child: SingleChildScrollView(
@@ -41,34 +38,18 @@ class SettingsPage extends ConsumerWidget {
             const SizedBox(height: KzSpace.s24),
             KzSection(
               title: 'Appearance',
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Wrap(
+                spacing: KzSpace.s8,
+                runSpacing: KzSpace.s8,
                 children: [
-                  Wrap(
-                    spacing: KzSpace.s8,
-                    runSpacing: KzSpace.s8,
-                    children: [
-                      for (final entry in _themeLabels.entries)
-                        KzChip(
-                          label: entry.value,
-                          selected: preference == entry.key,
-                          onPressed: () => ref
-                              .read(themePreferenceProvider.notifier)
-                              .set(entry.key),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: KzSpace.s8),
-                  KzListRow(
-                    title: 'Reduce transparency',
-                    subtitle: 'Replaces blur with solid surfaces',
-                    trailing: ShadSwitch(
-                      value: settings.reduceTransparency,
-                      onChanged: ref
-                          .read(visualSettingsProvider.notifier)
-                          .setReduceTransparency,
+                  for (final entry in _themeLabels.entries)
+                    KzChip(
+                      label: entry.value,
+                      selected: preference == entry.key,
+                      onPressed: () => ref
+                          .read(themePreferenceProvider.notifier)
+                          .set(entry.key),
                     ),
-                  ),
                 ],
               ),
             ),

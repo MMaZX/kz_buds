@@ -18,12 +18,12 @@ BoxDecoration decoration(WidgetTester tester) =>
         as BoxDecoration;
 
 void main() {
-  testWidgets('is an opaque panel with a hairline border', (tester) async {
+  testWidgets('is an opaque panel without a border', (tester) async {
     await pumpKz(tester, const KzCard(child: Text('inside')));
     expect(find.text('inside'), findsOneWidget);
     expect(decoration(tester).color, KzPalette.inkPanel);
     expect(decoration(tester).gradient, isNull);
-    expect(decoration(tester).border, isNotNull);
+    expect(decoration(tester).border, isNull);
     expect(find.byType(BackdropFilter), findsNothing);
   });
 

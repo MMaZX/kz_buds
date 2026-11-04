@@ -1,70 +1,80 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kz_buds/data/fake/fake_earbuds_adapter.dart';
+import 'package:kz_buds/domain/capabilities/capability.dart';
+import 'package:kz_buds/domain/entities/eq_settings.dart';
+import 'package:kz_buds/presentation/providers/earbuds_providers.dart';
 import 'package:kz_buds/presentation/providers/eq_providers.dart';
 
 void main() {
-  late ProviderContainer container;
-  late EqNotifier notifier;
-
-  setUp(() {
-    container = ProviderContainer();
+  ProviderContainer containerWith(FakeEarbudsAdapter fake) {
+    final container = ProviderContainer(
+      overrides: [earbudsPortProvider.overrideWithValue(fake)],
+    );
     addTearDown(container.dispose);
-    notifier = container.read(eqProvider.notifier);
+    addTearDown(fake.dispose);
+    return container;
+  }
+
+  test('reads the profile and the settings from the port', () async {
+    final container = containerWith(
+      FakeEarbudsAdapter(capabilities: {Capability.eq}),
+    );
+
+    // Riverpod pauses providers nobody listens to.
+    container.listen(eqSettingsProvider, (_, _) {});
+    final profile = await container.read(eqProfileProvider.future);
+    expect(profile, same(FakeEarbudsAdapter.eqDevProfile));
+    expect(
+      await container.read(eqSettingsProvider.future),
+      EqSettings(mode: 0, gains: List.filled(10, 0)),
+    );
   });
 
-  EqState state() => container.read(eqProvider);
+  test('no profile without the EQ capability', () async {
+    final container = containerWith(FakeEarbudsAdapter());
 
-  test('starts flat with ten bands at 0 dB', () {
-    expect(state().preset, EqPreset.flat);
-    expect(state().gains, List.filled(10, 0.0));
-    expect(eqBandLabels.length, 10);
+    expect(await container.read(eqProfileProvider.future), isNull);
   });
 
-  test('selecting a preset applies its gains', () {
-    notifier.selectPreset(EqPreset.bass);
-    expect(state().preset, EqPreset.bass);
-    expect(state().gains.first, greaterThan(0));
-    expect(state().gains.last, 0);
+  test('labels a preset by name, else Custom or its number', () {
+    const profile = EqProfile(
+      frequencies: [1000],
+      presets: [
+        EqPresetData(mode: 0, gains: [0], name: 'Flat'),
+        EqPresetData(mode: 1, gains: [0]),
+        EqPresetData(mode: 6, gains: [0]),
+      ],
+      customMode: 6,
+      minGain: -12,
+      maxGain: 12,
+    );
+
+    expect(profile.presets.map((p) => eqPresetLabel(profile, p)), [
+      'Flat',
+      'Preset 2',
+      'Custom',
+    ]);
   });
 
-  test('editing a band switches to custom and keeps the others', () {
-    notifier.selectPreset(EqPreset.bass);
-    final before = List<double>.of(state().gains);
-    notifier.setGain(3, -4);
-    expect(state().preset, EqPreset.custom);
-    expect(state().gains[3], -4);
-    expect(state().gains[0], before[0]);
-  });
+  test('model names win over numbers but not over the preset own name', () {
+    const profile = EqProfile(
+      frequencies: [1000],
+      presets: [
+        EqPresetData(mode: 0, gains: [0], name: 'Own'),
+        EqPresetData(mode: 1, gains: [0]),
+        EqPresetData(mode: 2, gains: [0]),
+        EqPresetData(mode: 6, gains: [0]),
+      ],
+      customMode: 6,
+      minGain: -12,
+      maxGain: 12,
+    );
+    const names = {0: 'Standard', 1: 'Bass Enhancement'};
 
-  test('gains are clamped and snapped to half dB', () {
-    notifier.setGain(0, 99);
-    expect(state().gains[0], eqMaxGain);
-    notifier.setGain(0, -99);
-    expect(state().gains[0], eqMinGain);
-    notifier.setGain(0, 1.26);
-    expect(state().gains[0], 1.5);
-  });
-
-  test('selecting custom keeps the current gains', () {
-    notifier.selectPreset(EqPreset.vocal);
-    final gains = List<double>.of(state().gains);
-    notifier.selectPreset(EqPreset.custom);
-    expect(state().preset, EqPreset.custom);
-    expect(state().gains, gains);
-  });
-
-  test('reset goes back to flat', () {
-    notifier.setGain(2, 5);
-    notifier.reset();
-    expect(state().preset, EqPreset.flat);
-    expect(state().gains, List.filled(10, 0.0));
-  });
-
-  test('formats gains for display', () {
-    expect(formatGain(6), '+6');
-    expect(formatGain(-2), '-2');
-    expect(formatGain(0), '0');
-    expect(formatGain(1.5), '+1.5');
-    expect(formatGain(-0.5), '-0.5');
+    expect(
+      profile.presets.map((p) => eqPresetLabel(profile, p, names: names)),
+      ['Own', 'Bass Enhancement', 'Preset 3', 'Custom'],
+    );
   });
 }

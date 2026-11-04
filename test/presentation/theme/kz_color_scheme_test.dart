@@ -16,10 +16,10 @@ void main() {
   const light = KzColorScheme.light();
 
   test('dark and light pin the key tokens', () {
-    expect(dark.background, const Color(0xFF171717));
+    expect(dark.background, const Color(0xFF000000));
     expect(light.background, const Color(0xFFF5F5F5));
-    expect(dark.ring, const Color(0xFFD9905F));
-    expect(light.ring, const Color(0xFF9A5226));
+    expect(dark.ring, const Color(0xFFE22B33));
+    expect(light.ring, const Color(0xFFC8102E));
     expect(dark.primary, dark.foreground);
     expect(light.primary, light.foreground);
   });
@@ -72,6 +72,19 @@ void main() {
       test('input boundary on card and ring on background reach 3:1', () {
         expect(contrast(s.input, s.card), greaterThanOrEqualTo(3.0));
         expect(contrast(s.ring, s.background), greaterThanOrEqualTo(3.0));
+      });
+
+      test('brandForeground reads on brand', () {
+        final colors = KzColors(s);
+        expect(
+          contrast(colors.brandForeground, colors.brand),
+          greaterThanOrEqualTo(4.5),
+        );
+      });
+
+      test('cards separate from the background by fill, not stroke', () {
+        expect(s.card, isNot(s.background));
+        expect(s.secondary, isNot(s.card));
       });
 
       test('brand text reads on background', () {

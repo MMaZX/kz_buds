@@ -4,8 +4,7 @@ import '../theme/kz_metrics.dart';
 import '../theme/kz_theme.dart';
 import 'kz_card.dart';
 
-/// Overline header over an opaque card. Not glass: rows and settings stay
-/// opaque so the blur budget goes to the surfaces that float.
+/// Overline header over an opaque card.
 class KzSection extends StatelessWidget {
   const KzSection({required this.title, required this.child, super.key});
 

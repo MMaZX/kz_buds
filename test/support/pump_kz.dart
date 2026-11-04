@@ -10,7 +10,6 @@ Future<void> pumpKz(
   WidgetTester tester,
   Widget child, {
   KzThemePreference preference = KzThemePreference.dark,
-  bool reduceTransparency = false,
 }) async {
   await tester.pumpWidget(
     WidgetsApp(
@@ -24,11 +23,8 @@ Future<void> pumpKz(
             settings: settings,
             pageBuilder: (context, _, _) => builder(context),
           ),
-      builder: (context, navigator) => KzThemeScope(
-        preference: preference,
-        reduceTransparency: reduceTransparency,
-        child: navigator!,
-      ),
+      builder: (context, navigator) =>
+          KzThemeScope(preference: preference, child: navigator!),
       home: Center(child: child),
     ),
   );

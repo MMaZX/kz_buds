@@ -4,11 +4,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kz_buds/data/fake/fake_earbuds_adapter.dart';
 import 'package:kz_buds/domain/capabilities/capability.dart';
 import 'package:kz_buds/domain/entities/anc_mode.dart';
-import 'package:kz_buds/presentation/pages/anc_page.dart';
+import 'package:kz_buds/domain/entities/eq_settings.dart';
 import 'package:kz_buds/presentation/providers/eq_providers.dart';
-import 'package:kz_buds/presentation/theme/kz_palette.dart';
-import 'package:kz_buds/presentation/widgets/kz_chip.dart';
+import 'package:kz_buds/presentation/widgets/equalizer/kz_equalizer.dart';
 import 'package:kz_buds/presentation/widgets/kz_nav_pill.dart';
+import 'package:kz_buds/presentation/widgets/noise_control_sheet.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../support/pump_home.dart';
@@ -16,8 +16,11 @@ import '../support/pump_home.dart';
 FakeEarbudsAdapter withEq() =>
     FakeEarbudsAdapter(capabilities: {Capability.anc, Capability.eq});
 
-bool chipSelected(WidgetTester tester, String label) =>
-    tester.widget<KzChip>(find.widgetWithText(KzChip, label)).selected;
+Finder preset(String label) => find.widgetWithText(ShadButton, label);
+
+bool presetSelected(WidgetTester tester, String label) =>
+    tester.widget<ShadButton>(preset(label)).variant ==
+    ShadButtonVariant.primary;
 
 void main() {
   group('navigation shell', () {
@@ -64,121 +67,146 @@ void main() {
       return container;
     }
 
-    testWidgets('shows ten bands and starts on Flat', (tester) async {
+    Future<ProviderContainer> openAdvanced(WidgetTester tester) async {
+      final container = await openEq(tester);
+      await tester.tap(find.text('ADVANCED'));
+      await tester.pumpAndSettle();
+      return container;
+    }
+
+    EqSettings? sent(ProviderContainer container) =>
+        container.read(eqSettingsProvider).value;
+
+    Future<void> tapVisible(WidgetTester tester, Finder finder) async {
+      await tester.ensureVisible(finder);
+      await tester.pumpAndSettle();
+      await tester.tap(finder);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('opens on Simple with the device presets', (tester) async {
       await openEq(tester);
-      expect(find.byType(ShadSlider), findsNWidgets(10));
-      for (final label in eqBandLabels) {
-        expect(find.text(label), findsOneWidget);
-      }
-      expect(chipSelected(tester, 'Flat'), isTrue);
+      expect(preset('Bass'), findsOneWidget);
+      expect(preset('Custom'), findsNothing);
+      expect(presetSelected(tester, 'Flat'), isTrue);
+      expect(find.byType(KzEqualizer), findsNothing);
     });
 
-    testWidgets('choosing Bass moves the sliders', (tester) async {
-      final container = await openEq(tester);
-      await tester.tap(find.widgetWithText(KzChip, 'Bass'));
+    testWidgets('opens on Advanced when the earbuds are on custom', (
+      tester,
+    ) async {
+      final fake = withEq();
+      await fake.setEq(EqSettings(mode: 6, gains: List.filled(10, 2)));
+      await pumpApp(tester, fake);
+      await tester.tap(find.bySemanticsLabel('Equalizer'));
       await tester.pumpAndSettle();
-      expect(chipSelected(tester, 'Bass'), isTrue);
-      expect(container.read(eqProvider).preset, EqPreset.bass);
-      expect(find.text('+6'), findsOneWidget);
+      expect(find.byType(KzEqualizer), findsOneWidget);
     });
 
-    testWidgets('dragging a band switches to Custom', (tester) async {
+    testWidgets('choosing Bass sends that preset', (tester) async {
       final container = await openEq(tester);
-      await tester.drag(find.byType(ShadSlider).first, const Offset(0, -60));
+      await tester.tap(preset('Bass'));
       await tester.pumpAndSettle();
-      expect(container.read(eqProvider).preset, EqPreset.custom);
-      expect(container.read(eqProvider).gains.first, greaterThan(0));
-      expect(chipSelected(tester, 'Custom'), isTrue);
+      expect(presetSelected(tester, 'Bass'), isTrue);
+      expect(sent(container)?.mode, 1);
     });
 
-    testWidgets('Reset returns to Flat', (tester) async {
+    testWidgets('Advanced shows the equalizer with the band readouts', (
+      tester,
+    ) async {
+      await openAdvanced(tester);
+      expect(find.byType(KzEqualizer), findsOneWidget);
+      expect(find.text('F 31HZ'), findsOneWidget);
+      expect(find.text('GAIN 0.0 DB'), findsOneWidget);
+    });
+
+    testWidgets('dragging a band sends the custom mode', (tester) async {
+      final container = await openAdvanced(tester);
+      final box = find.byType(KzEqualizer);
+      final geometry = KzEqualizerGeometry(tester.getSize(box), 10);
+      final start =
+          tester.getTopLeft(box) +
+          Offset(geometry.track(0).center.dx, geometry.yOfFraction(0.5));
+      await tester.dragFrom(start, const Offset(0, -60));
+      await tester.pumpAndSettle();
+      expect(sent(container)?.mode, FakeEarbudsAdapter.eqDevProfile.customMode);
+      expect(sent(container)!.gains.first, greaterThan(0));
+    });
+
+    testWidgets('undo and redo send the previous gains as custom', (
+      tester,
+    ) async {
       final container = await openEq(tester);
-      await tester.tap(find.widgetWithText(KzChip, 'Bass'));
+      await tester.tap(preset('Bass'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Reset'));
+      await tester.tap(find.text('ADVANCED'));
       await tester.pumpAndSettle();
-      expect(container.read(eqProvider).preset, EqPreset.flat);
-      expect(chipSelected(tester, 'Flat'), isTrue);
+      await tapVisible(tester, find.bySemanticsLabel('Undo'));
+      expect(sent(container)?.gains, List.filled(10, 0.0));
+      await tapVisible(tester, find.bySemanticsLabel('Redo'));
+      expect(
+        sent(container)?.gains,
+        FakeEarbudsAdapter.eqDevProfile.presets[1].gains,
+      );
+    });
+
+    testWidgets('Reset sends flat gains', (tester) async {
+      final container = await openEq(tester);
+      await tester.tap(preset('Bass'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('ADVANCED'));
+      await tester.pumpAndSettle();
+      await tapVisible(tester, find.text('RESET'));
+      expect(sent(container)?.gains, List.filled(10, 0.0));
     });
   });
 
-  group('noise control page', () {
+  group('noise control sheet', () {
     Future<void> openAnc(WidgetTester tester) async {
       await tester.tap(find.bySemanticsLabel('Noise control details'));
       await tester.pumpAndSettle();
     }
 
-    testWidgets('opens from the home card and lists the three modes', (
-      tester,
-    ) async {
+    testWidgets('opens over the home with the three modes', (tester) async {
       await pumpApp(tester, FakeEarbudsAdapter());
       await openAnc(tester);
-      expect(find.text('Noise control'), findsOneWidget);
-      expect(find.text('Reduces outside noise'), findsOneWidget);
-      expect(find.text('Lets outside sound in'), findsOneWidget);
-      expect(find.text('No processing'), findsOneWidget);
+      expect(find.byType(NoiseControlSheet), findsOneWidget);
+      expect(find.text('NOISE CANCELLING'), findsOneWidget);
+      expect(find.text('AMBIENT'), findsOneWidget);
+      expect(find.text('OFF'), findsOneWidget);
+      // The home stays underneath: no page was pushed.
+      expect(find.byType(Placeholder), findsOneWidget);
     });
 
-    testWidgets('choosing a mode sets it on the device', (tester) async {
+    testWidgets('choosing a mode sets it on the device and selects it', (
+      tester,
+    ) async {
       final fake = FakeEarbudsAdapter();
       await pumpApp(tester, fake);
       await openAnc(tester);
-      await tester.tap(find.text('Lets outside sound in'));
+      await tester.tap(find.bySemanticsLabel('Ambient'));
       await tester.pumpAndSettle();
       expect(fake.ancMode, AncMode.ambient);
-    });
-
-    testWidgets('a pushed page is opaque and slides in, never fades', (
-      tester,
-    ) async {
-      await pumpApp(tester, FakeEarbudsAdapter());
-      await tester.tap(find.bySemanticsLabel('Noise control details'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
-
       expect(
-        find.ancestor(
-          of: find.byType(AncPage),
-          matching: find.byType(FadeTransition),
-        ),
-        findsNothing,
-      );
-      expect(
-        find.ancestor(
-          of: find.byType(AncPage),
-          matching: find.byType(SlideTransition),
-        ),
-        findsWidgets,
-      );
-      expect(
-        find.ancestor(
-          of: find.byType(AncPage),
-          matching: find.byWidgetPredicate(
-            (w) => w is ColoredBox && w.color == KzPalette.inkBg,
-          ),
-        ),
-        // The app background plus the route's own opaque background.
-        findsNWidgets(2),
+        tester.getSemantics(find.bySemanticsLabel('Ambient')),
+        isSemantics(label: 'Ambient', isSelected: true),
       );
     });
 
-    testWidgets('the home does not show through the page', (tester) async {
-      await pumpApp(tester, FakeEarbudsAdapter());
-      expect(find.byType(Placeholder), findsOneWidget);
-      await openAnc(tester);
-      expect(find.text('Noise control'), findsOneWidget);
-      expect(find.byType(Placeholder), findsNothing);
-      expect(find.text('KZ Buds'), findsNothing);
-      expect(find.text('NOISE CONTROL'), findsNothing);
-    });
-
-    testWidgets('back returns to the home', (tester) async {
+    testWidgets('is at most 460 px wide and centered', (tester) async {
       await pumpApp(tester, FakeEarbudsAdapter());
       await openAnc(tester);
-      await tester.tap(find.bySemanticsLabel('Back'));
+      final rect = tester.getRect(find.byKey(NoiseControlSheet.cardKey));
+      expect(rect.width, NoiseControlSheet.maxWidth);
+      expect(rect.center.dx, closeTo(400, 0.5));
+    });
+
+    testWidgets('tapping the barrier closes it', (tester) async {
+      await pumpApp(tester, FakeEarbudsAdapter());
+      await openAnc(tester);
+      await tester.tapAt(const Offset(10, 10));
       await tester.pumpAndSettle();
-      expect(find.text('Noise control'), findsNothing);
-      expect(find.byType(Placeholder), findsOneWidget);
+      expect(find.byType(NoiseControlSheet), findsNothing);
     });
   });
 }

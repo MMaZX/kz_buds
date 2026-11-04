@@ -2,16 +2,16 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../domain/entities/bud.dart';
+import '../../domain/entities/find_target.dart';
 import 'earbuds_providers.dart';
 
-/// The earbud currently playing the locating sound. Auto-disposed: when
-/// nobody watches it any more (the page was left) the sound is stopped.
-class FindSoundNotifier extends Notifier<Bud?> {
-  Bud? _playing;
+/// What is currently playing the locating sound. Auto-disposed: when nobody
+/// watches it any more (the page was left) the sound is stopped.
+class FindSoundNotifier extends Notifier<FindTarget?> {
+  FindTarget? _playing;
 
   @override
-  Bud? build() {
+  FindTarget? build() {
     final port = ref.watch(earbudsPortProvider);
     ref.onDispose(() {
       if (_playing != null) unawaited(port.stopFindSound());
@@ -19,10 +19,10 @@ class FindSoundNotifier extends Notifier<Bud?> {
     return null;
   }
 
-  Future<void> play(Bud bud) async {
-    await ref.read(earbudsPortProvider).playFindSound(bud);
-    _playing = bud;
-    state = bud;
+  Future<void> play(FindTarget target) async {
+    await ref.read(earbudsPortProvider).playFindSound(target);
+    _playing = target;
+    state = target;
   }
 
   Future<void> stop() async {
@@ -32,6 +32,7 @@ class FindSoundNotifier extends Notifier<Bud?> {
   }
 }
 
-final findSoundProvider = NotifierProvider.autoDispose<FindSoundNotifier, Bud?>(
-  FindSoundNotifier.new,
-);
+final findSoundProvider =
+    NotifierProvider.autoDispose<FindSoundNotifier, FindTarget?>(
+      FindSoundNotifier.new,
+    );

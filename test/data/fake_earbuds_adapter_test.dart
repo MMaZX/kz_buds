@@ -3,7 +3,9 @@ import 'package:kz_buds/data/fake/fake_earbuds_adapter.dart';
 import 'package:kz_buds/domain/capabilities/capability.dart';
 import 'package:kz_buds/domain/entities/anc_mode.dart';
 import 'package:kz_buds/domain/entities/battery_status.dart';
-import 'package:kz_buds/domain/entities/bud.dart';
+import 'package:kz_buds/domain/entities/earbuds_identity.dart';
+import 'package:kz_buds/domain/entities/eq_settings.dart';
+import 'package:kz_buds/domain/entities/find_target.dart';
 import 'package:kz_buds/domain/entities/link_state.dart';
 
 void main() {
@@ -72,21 +74,94 @@ void main() {
   group('find sound', () {
     test('plays on one bud and stops', () async {
       final fake = FakeEarbudsAdapter(capabilities: {Capability.findBuds});
-      expect(fake.findSoundBud, isNull);
-      await fake.playFindSound(Bud.right);
-      expect(fake.findSoundBud, Bud.right);
+      expect(fake.findSoundTarget, isNull);
+      await fake.playFindSound(FindTarget.right);
+      expect(fake.findSoundTarget, FindTarget.right);
       await fake.stopFindSound();
-      expect(fake.findSoundBud, isNull);
+      expect(fake.findSoundTarget, isNull);
       await fake.dispose();
     });
 
     test('requires the findBuds capability', () async {
       final fake = FakeEarbudsAdapter(capabilities: {});
       expect(
-        () => fake.playFindSound(Bud.left),
+        () => fake.playFindSound(FindTarget.left),
         throwsA(isA<UnsupportedError>()),
       );
       await fake.dispose();
     });
+  });
+
+  test('reports the configured identity', () async {
+    final fake = FakeEarbudsAdapter(
+      identity: const EarbudsIdentity(name: 'Carol Pro'),
+    );
+
+    expect(await fake.identity(), const EarbudsIdentity(name: 'Carol Pro'));
+    expect(await FakeEarbudsAdapter().identity(), isNull);
+    await fake.dispose();
+  });
+
+  group('connect', () {
+    test('goes from disconnected through connecting to connected', () async {
+      final fake = FakeEarbudsAdapter(initialLinkState: LinkState.disconnected);
+      final states = <LinkState>[];
+      final sub = fake.watchConnection().listen(states.add);
+      await pumpEventQueue();
+
+      await fake.connect();
+      await pumpEventQueue();
+
+      expect(states, [
+        LinkState.disconnected,
+        LinkState.connecting,
+        LinkState.connected,
+      ]);
+      expect(fake.connectCalls, 1);
+      await sub.cancel();
+      await fake.dispose();
+    });
+
+    test('does nothing while already connected', () async {
+      final fake = FakeEarbudsAdapter();
+
+      await fake.connect();
+
+      expect(fake.connectCalls, 1);
+      expect(await fake.watchConnection().first, LinkState.connected);
+      await fake.dispose();
+    });
+  });
+
+  test('with EQ: a profile, flat to start, and setEq updates it', () async {
+    final fake = FakeEarbudsAdapter(capabilities: {Capability.eq});
+    final profile = (await fake.eqProfile())!;
+
+    expect(profile.frequencies, hasLength(10));
+    expect(profile.presets.map((p) => p.name), ['Flat', 'Bass', 'Vocal', null]);
+    expect(
+      await fake.watchEq().first,
+      EqSettings(mode: 0, gains: List.filled(10, 0)),
+    );
+
+    final next = fake.watchEq().skip(1).first;
+    final custom = EqSettings(
+      mode: profile.customMode,
+      gains: List.filled(10, 2),
+    );
+    await fake.setEq(custom);
+    expect(await next, custom);
+    await fake.dispose();
+  });
+
+  test('without EQ: no profile and setEq is unsupported', () async {
+    final fake = FakeEarbudsAdapter();
+
+    expect(await fake.eqProfile(), isNull);
+    expect(
+      () => fake.setEq(const EqSettings(mode: 0, gains: [])),
+      throwsUnsupportedError,
+    );
+    await fake.dispose();
   });
 }

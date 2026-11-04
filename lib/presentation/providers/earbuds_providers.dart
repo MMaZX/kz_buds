@@ -1,8 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/capabilities/capability.dart';
+import '../../domain/catalog/earbuds_catalog.dart';
+import '../../domain/catalog/earbuds_model.dart';
 import '../../domain/entities/anc_mode.dart';
 import '../../domain/entities/battery_status.dart';
+import '../../domain/entities/earbuds_identity.dart';
 import '../../domain/entities/link_state.dart';
 import '../../domain/ports/earbuds_port.dart';
 
@@ -19,9 +22,24 @@ final batteryProvider = StreamProvider<BatteryStatus>(
   (ref) => ref.watch(earbudsPortProvider).watchBattery(),
 );
 
-final capabilitiesProvider = FutureProvider<Set<Capability>>(
-  (ref) => ref.watch(earbudsPortProvider).capabilities(),
-);
+/// Read again on every link change: a real device only knows its
+/// capabilities once connected.
+final capabilitiesProvider = FutureProvider<Set<Capability>>((ref) {
+  ref.watch(connectionProvider);
+  return ref.watch(earbudsPortProvider).capabilities();
+});
+
+/// Read again on every link change, like [capabilitiesProvider].
+final identityProvider = FutureProvider<EarbudsIdentity?>((ref) {
+  ref.watch(connectionProvider);
+  return ref.watch(earbudsPortProvider).identity();
+});
+
+/// The known model behind the identity, for appearance only.
+final earbudsModelProvider = Provider<EarbudsModel?>((ref) {
+  final identity = ref.watch(identityProvider).value;
+  return identity == null ? null : EarbudsCatalog.match(identity);
+});
 
 final ancModeProvider = StreamProvider<AncMode>(
   (ref) => ref.watch(earbudsPortProvider).watchAncMode(),

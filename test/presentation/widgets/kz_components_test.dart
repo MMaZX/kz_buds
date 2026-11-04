@@ -118,6 +118,34 @@ void main() {
       await tester.tap(find.byType(KzRoundButton));
       expect(taps, 1);
     });
+
+    BoxDecoration circle(WidgetTester tester) =>
+        tester
+                .widget<DecoratedBox>(
+                  find.descendant(
+                    of: find.byKey(const ValueKey('kz-round-button-circle')),
+                    matching: find.byType(DecoratedBox),
+                  ),
+                )
+                .decoration
+            as BoxDecoration;
+
+    testWidgets('unselected is an outline with no fill', (tester) async {
+      await pumpKz(tester, const KzRoundButton(icon: KzIcons.ear));
+      expect(circle(tester).color, isNull);
+      expect(circle(tester).border, isNotNull);
+    });
+
+    testWidgets('selected fills with the primary and drops the outline', (
+      tester,
+    ) async {
+      await pumpKz(
+        tester,
+        const KzRoundButton(icon: KzIcons.ear, selected: true),
+      );
+      expect(circle(tester).color, KzPalette.inkText);
+      expect(circle(tester).border, isNull);
+    });
   });
 
   group('KzBatteryIndicator', () {

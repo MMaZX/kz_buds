@@ -34,7 +34,6 @@ class KzPowerPill extends StatelessWidget {
         decoration: BoxDecoration(
           color: scheme.secondary,
           borderRadius: radius,
-          border: Border.all(color: scheme.border, width: KzStroke.hairline),
         ),
         child: SizedBox(
           width: _width,

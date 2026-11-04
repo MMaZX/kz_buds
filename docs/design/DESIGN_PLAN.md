@@ -234,11 +234,13 @@ plain `background`, because there it adds cost and no visible effect.
 - Source: `rsms/inter` release **v4.1** (2024-11-16, VERIFIED via the GitHub API), license **SIL OFL 1.1** (VERIFIED in
   `LICENSE.txt`). Ship the license as `assets/fonts/inter/LICENSE.txt` and register it with `LicenseRegistry`, so the
   About screen lists it.
-- Files (static, deterministic on every platform): `Inter-Regular.ttf` (412 KB), `Inter-Medium.ttf` (417 KB),
-  `Inter-SemiBold.ttf` (420 KB), `InterDisplay-Light.ttf` (413 KB, for the big numerals). About 1.66 MB in total.
+- Files (static, deterministic on every platform), one family `InterDisplay` for the whole app since 2026-11-04 (the
+  closest open alternative to SF Pro Display, which Apple licenses only for Apple-platform mockups):
+  `InterDisplay-Light.ttf` (300), `InterDisplay-Regular.ttf` (400), `InterDisplay-Medium.ttf` (500),
+  `InterDisplay-SemiBold.ttf` (600), from `extras/ttf/` of the v4.1 zip. The Inter Text statics were removed.
   Optional later optimization: the single `InterVariable.ttf` (880 KB) with `FontVariation('wght', …)`. **UNVERIFIED**
   whether `FontWeight` alone drives the `wght` axis on all three platforms, so the statics come first.
-- shadcn wiring: `ShadThemeData(textTheme: ShadTextTheme(family: 'Inter', …))`. VERIFIED: the shadcn default is
+- shadcn wiring: `ShadThemeData(textTheme: ShadTextTheme(family: 'InterDisplay', …))`. VERIFIED: the shadcn default is
   `packages/shadcn_ui/Geist`, and `family` overrides it.
 
 ### 4.2 Scale
@@ -249,14 +251,14 @@ Letter spacing is in logical px (Flutter uses absolute values) = size × em.
 |---|---|---|---|---|---|---|
 | `numeralXl` | Inter Display | 64 | 300 | 1.00 | -1.6 (-2.5%) | hero battery %, tabular |
 | `numeralL` | Inter Display | 40 | 300 | 1.05 | -0.8 | L/R battery in hero |
-| `h1` | Inter | 28 | 600 | 1.15 | -0.42 | page title |
-| `h2` | Inter | 22 | 600 | 1.20 | -0.22 | section title |
-| `title` | Inter | 17 | 600 | 1.30 | -0.09 | card title |
-| `body` | Inter | 15 | 400 | 1.45 | 0 | default `DefaultTextStyle` |
-| `bodyStrong` | Inter | 15 | 500 | 1.45 | 0 | row labels |
-| `label` | Inter | 13 | 500 | 1.30 | +0.07 | buttons, chips |
-| `caption` | Inter | 12 | 400 | 1.35 | +0.12 | meta, units |
-| `overline` | Inter | 11 | 600 | 1.20 | +0.88 (8%), UPPERCASE | section labels, circular-button labels |
+| `h1` | Inter Display | 28 | 600 | 1.15 | -0.42 | page title |
+| `h2` | Inter Display | 22 | 600 | 1.20 | -0.22 | section title |
+| `title` | Inter Display | 17 | 600 | 1.30 | -0.09 | card title |
+| `body` | Inter Display | 15 | 400 | 1.45 | 0 | default `DefaultTextStyle` |
+| `bodyStrong` | Inter Display | 15 | 500 | 1.45 | 0 | row labels |
+| `label` | Inter Display | 13 | 500 | 1.30 | +0.07 | buttons, chips |
+| `caption` | Inter Display | 12 | 400 | 1.35 | +0.12 | meta, units |
+| `overline` | Inter Display | 11 | 600 | 1.20 | +0.88 (8%), UPPERCASE | section labels, circular-button labels |
 
 - Tabular numerals: every numeric style adds `fontFeatures: [FontFeature.tabularFigures()]` (`tnum`), so `72%` to `100%`
   does not shift. Inter documents `tnum` support (**UNVERIFIED** here because fontTools was unavailable; T1 checks it with

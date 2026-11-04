@@ -28,8 +28,8 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   const type = KzTypography();
 
-  test('body is Inter 15 / 400 / 1.45', () {
-    expect(type.body.fontFamily, 'Inter');
+  test('body is Inter Display 15 / 400 / 1.45', () {
+    expect(type.body.fontFamily, 'InterDisplay');
     expect(type.body.fontSize, 15);
     expect(type.body.fontWeight, FontWeight.w400);
     expect(type.body.height, 1.45);
@@ -54,9 +54,42 @@ void main() {
     );
   });
 
-  test('maps onto the shadcn text theme with the Inter family', () {
+  test('every style uses the Inter Display family', () {
+    final styles = [
+      type.numeralXl,
+      type.numeralL,
+      type.h1,
+      type.h2,
+      type.title,
+      type.body,
+      type.bodyStrong,
+      type.label,
+      type.caption,
+      type.overline,
+    ];
+    for (final style in styles) {
+      expect(style.fontFamily, 'InterDisplay');
+    }
+  });
+
+  test('every weight in the scale is bundled for Inter Display', () {
+    final pubspec = File('pubspec.yaml').readAsStringSync();
+    const files = {
+      300: 'InterDisplay-Light.ttf',
+      400: 'InterDisplay-Regular.ttf',
+      500: 'InterDisplay-Medium.ttf',
+      600: 'InterDisplay-SemiBold.ttf',
+    };
+    files.forEach((weight, file) {
+      expect(pubspec, contains('assets/fonts/inter/$file'));
+      expect(File('assets/fonts/inter/$file').existsSync(), isTrue);
+    });
+    expect(pubspec, isNot(contains('family: Inter\n')));
+  });
+
+  test('maps onto the shadcn text theme with the Inter Display family', () {
     final shad = type.toShadTextTheme();
-    expect(shad.family, 'Inter');
+    expect(shad.family, 'InterDisplay');
     expect(shad.p.fontSize, type.body.fontSize);
     expect(shad.h1.fontSize, type.h1.fontSize);
   });

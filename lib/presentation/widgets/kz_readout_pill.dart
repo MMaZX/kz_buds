@@ -1,11 +1,13 @@
 import 'package:flutter/widgets.dart';
 
 import '../theme/kz_metrics.dart';
+import '../theme/kz_motion.dart';
 import '../theme/kz_theme.dart';
 
 /// Read-only capsule that shows a value and where it sits in its range:
 /// tinted up to a red marker line at [fraction], with the [label] centered.
-class KzReadoutPill extends StatelessWidget {
+/// A new [fraction] glides there; only the painter repaints on each tick.
+class KzReadoutPill extends StatefulWidget {
   const KzReadoutPill({required this.label, required this.fraction, super.key});
 
   final String label;
@@ -18,6 +20,41 @@ class KzReadoutPill extends StatelessWidget {
   double get marker => fraction.clamp(0.0, 1.0);
 
   @override
+  State<KzReadoutPill> createState() => _KzReadoutPillState();
+}
+
+class _KzReadoutPillState extends State<KzReadoutPill>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _glide = AnimationController(vsync: this)
+    ..value = 1;
+  late double _from = widget.marker;
+  late double _to = widget.marker;
+
+  double get _shown =>
+      _from + (_to - _from) * KzMotion.valueCurve.transform(_glide.value);
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _glide.duration = KzMotion.of(context).value;
+  }
+
+  @override
+  void didUpdateWidget(KzReadoutPill oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.marker == _to) return;
+    _from = _shown;
+    _to = widget.marker;
+    _glide.forward(from: 0);
+  }
+
+  @override
+  void dispose() {
+    _glide.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = KzTheme.of(context);
     final scheme = theme.scheme;
@@ -25,25 +62,28 @@ class KzReadoutPill extends StatelessWidget {
     return Semantics(
       container: true,
       readOnly: true,
-      label: label,
+      label: widget.label,
       child: ExcludeSemantics(
         child: SizedBox(
-          height: height,
-          child: CustomPaint(
-            painter: _ReadoutPainter(
-              marker: marker,
-              track: scheme.secondary,
-              tint: theme.colors.brand.withValues(alpha: 0.18),
-              line: theme.colors.brand,
-              tick: scheme.border,
-            ),
-            child: Center(
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.typography.bodyStrong.copyWith(
-                  color: scheme.foreground,
+          height: KzReadoutPill.height,
+          child: RepaintBoundary(
+            child: CustomPaint(
+              painter: _ReadoutPainter(
+                shown: () => _shown,
+                glide: _glide,
+                track: scheme.secondary,
+                tint: theme.colors.brand.withValues(alpha: 0.18),
+                line: theme.colors.brand,
+                tick: scheme.border,
+              ),
+              child: Center(
+                child: Text(
+                  widget.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.typography.bodyStrong.copyWith(
+                    color: scheme.foreground,
+                  ),
                 ),
               ),
             ),
@@ -55,21 +95,25 @@ class KzReadoutPill extends StatelessWidget {
 }
 
 class _ReadoutPainter extends CustomPainter {
-  const _ReadoutPainter({
-    required this.marker,
+  _ReadoutPainter({
+    required this.shown,
+    required Listenable glide,
     required this.track,
     required this.tint,
     required this.line,
     required this.tick,
-  });
+  }) : super(repaint: glide);
 
-  final double marker;
+  final ValueGetter<double> shown;
   final Color track;
   final Color tint;
   final Color line;
   final Color tick;
 
   static const _tickInset = 0.12;
+
+  /// Where the marker is drawn right now.
+  double get marker => shown();
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -107,9 +151,9 @@ class _ReadoutPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_ReadoutPainter old) =>
-      old.marker != marker ||
       old.track != track ||
       old.tint != tint ||
       old.line != line ||
-      old.tick != tick;
+      old.tick != tick ||
+      old.marker != marker;
 }

@@ -1,11 +1,13 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../theme/kz_metrics.dart';
+import '../../theme/kz_motion.dart';
 import '../../theme/kz_theme.dart';
 import 'kz_equalizer_controller.dart';
 
@@ -56,26 +58,73 @@ class KzEqualizer extends StatefulWidget {
   static const axis = [20, 50, 100, 500, 1000, 5000, 10000, 20000];
 
   @override
-  State<KzEqualizer> createState() => _KzEqualizerState();
+  State<KzEqualizer> createState() => KzEqualizerState();
 }
 
-class _KzEqualizerState extends State<KzEqualizer> {
+/// Public only so tests can read [shownGains].
+class KzEqualizerState extends State<KzEqualizer>
+    with SingleTickerProviderStateMixin {
   final _focusNode = FocusNode(debugLabel: 'KzEqualizer');
 
+  /// Glides the drawn gains to the controller's: every change starts a new
+  /// glide from what is on screen, so a drag never jumps.
+  late final AnimationController _glide = AnimationController(vsync: this)
+    ..value = 1;
+  late List<double> _from;
+  late List<double> _to;
+
   KzEqualizerController get _eq => widget.controller;
+
+  /// The gains as drawn right now, between the last start and the target.
+  @visibleForTesting
+  List<double> get shownGains {
+    final t = KzMotion.valueCurve.transform(_glide.value);
+    return [
+      for (var i = 0; i < _to.length; i++)
+        i < _from.length ? _from[i] + (_to[i] - _from[i]) * t : _to[i],
+    ];
+  }
 
   @override
   void initState() {
     super.initState();
     _focusNode.addListener(_onFocusChange);
+    _from = _to = _eq.gains;
+    _eq.addListener(_onGains);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _glide.duration = KzMotion.of(context).value;
+  }
+
+  @override
+  void didUpdateWidget(KzEqualizer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.controller, widget.controller)) {
+      oldWidget.controller.removeListener(_onGains);
+      widget.controller.addListener(_onGains);
+      _onGains();
+    }
   }
 
   @override
   void dispose() {
+    _eq.removeListener(_onGains);
+    _glide.dispose();
     _focusNode
       ..removeListener(_onFocusChange)
       ..dispose();
     super.dispose();
+  }
+
+  void _onGains() {
+    final next = _eq.gains;
+    if (listEquals(next, _to)) return;
+    _from = shownGains;
+    _to = next;
+    _glide.forward(from: 0);
   }
 
   void _onFocusChange() => setState(() {});
@@ -141,46 +190,50 @@ class _KzEqualizerState extends State<KzEqualizer> {
             child: MouseRegion(
               cursor: SystemMouseCursors.click,
               child: ExcludeSemantics(
-                child: _RawEqualizer(
-                  data: _EqPaintData(
-                    gains: _eq.gains,
-                    frequencies: widget.frequencies,
-                    min: _eq.min,
-                    max: _eq.max,
-                    zero: _eq.zero,
-                    selected: band,
-                    focused: _focusNode.hasFocus,
-                    panel: scheme.secondary,
-                    line: scheme.border,
-                    point: scheme.mutedForeground,
-                    thumb: scheme.foreground,
-                    accent: theme.colors.brand,
-                  ),
-                  onSelect: _press,
-                  onSetGain: (band, gain) {
-                    _press(band);
-                    _eq
-                      ..setGain(band, gain)
-                      ..commit();
-                  },
-                  onDragGain: (band, gain) {
-                    _press(band);
-                    _eq.setGain(band, gain);
-                  },
-                  onDragEnd: _eq.commit,
-                  axisLabels: [
-                    for (final hz in KzEqualizer.axis)
-                      Text(formatEqFrequency(hz), style: axisStyle),
-                  ],
-                  scaleLabels: [
-                    for (var side = 0; side < 2; side++)
-                      for (final mark in const ['+', '0', '-'])
-                        Text(mark, style: scaleStyle),
-                  ],
-                  valueLabel: Text(
-                    formatEqGain(gain),
-                    style: theme.typography.label.copyWith(
-                      color: theme.colors.brand,
+                child: RepaintBoundary(
+                  child: _RawEqualizer(
+                    data: _EqPaintData(
+                      gains: _eq.gains,
+                      shownGains: () => shownGains,
+                      glide: _glide,
+                      frequencies: widget.frequencies,
+                      min: _eq.min,
+                      max: _eq.max,
+                      zero: _eq.zero,
+                      selected: band,
+                      focused: _focusNode.hasFocus,
+                      panel: scheme.secondary,
+                      line: scheme.border,
+                      point: scheme.mutedForeground,
+                      thumb: scheme.foreground,
+                      accent: theme.colors.brand,
+                    ),
+                    onSelect: _press,
+                    onSetGain: (band, gain) {
+                      _press(band);
+                      _eq
+                        ..setGain(band, gain)
+                        ..commit();
+                    },
+                    onDragGain: (band, gain) {
+                      _press(band);
+                      _eq.setGain(band, gain);
+                    },
+                    onDragEnd: _eq.commit,
+                    axisLabels: [
+                      for (final hz in KzEqualizer.axis)
+                        Text(formatEqFrequency(hz), style: axisStyle),
+                    ],
+                    scaleLabels: [
+                      for (var side = 0; side < 2; side++)
+                        for (final mark in const ['+', '0', '-'])
+                          Text(mark, style: scaleStyle),
+                    ],
+                    valueLabel: Text(
+                      formatEqGain(gain),
+                      style: theme.typography.label.copyWith(
+                        color: theme.colors.brand,
+                      ),
                     ),
                   ),
                 ),
@@ -267,6 +320,8 @@ class KzEqualizerGeometry {
 class _EqPaintData {
   const _EqPaintData({
     required this.gains,
+    required this.shownGains,
+    required this.glide,
     required this.frequencies,
     required this.min,
     required this.max,
@@ -280,7 +335,12 @@ class _EqPaintData {
     required this.accent,
   });
 
+  /// Target gains; [shownGains] gives the ones on screen during a glide.
   final List<double> gains;
+  final ValueGetter<List<double>> shownGains;
+
+  /// Ticks while the gains glide; the render object repaints on it.
+  final Listenable glide;
   final List<num> frequencies;
   final double min;
   final double max;
@@ -446,9 +506,24 @@ class _RenderEqualizer extends RenderBox {
 
   _EqPaintData _data;
 
+  /// Layout depends only on the selection and the range; everything else
+  /// (gains, focus, colors) is paint.
   set data(_EqPaintData value) {
+    final old = _data;
     _data = value;
-    markNeedsLayout();
+    if (!identical(old.glide, value.glide) && attached) {
+      old.glide.removeListener(markNeedsPaint);
+      value.glide.addListener(markNeedsPaint);
+    }
+    if (old.selected != value.selected ||
+        old.gains.length != value.gains.length ||
+        old.min != value.min ||
+        old.max != value.max ||
+        old.zero != value.zero) {
+      markNeedsLayout();
+    } else {
+      markNeedsPaint();
+    }
   }
 
   late ValueChanged<int> _onSelect;
@@ -487,6 +562,7 @@ class _RenderEqualizer extends RenderBox {
   @override
   void attach(PipelineOwner owner) {
     super.attach(owner);
+    _data.glide.addListener(markNeedsPaint);
     for (final child in _children.values) {
       child.attach(owner);
     }
@@ -494,6 +570,7 @@ class _RenderEqualizer extends RenderBox {
 
   @override
   void detach() {
+    _data.glide.removeListener(markNeedsPaint);
     super.detach();
     for (final child in _children.values) {
       child.detach();
@@ -589,9 +666,10 @@ class _RenderEqualizer extends RenderBox {
       ..save()
       ..translate(offset.dx, offset.dy);
     final g = _geometry;
-    _paintGraph(canvas, g);
+    final shown = _data.shownGains();
+    _paintGraph(canvas, g, shown);
     for (var i = 0; i < _bandCount; i++) {
-      _paintTrack(canvas, g, i);
+      _paintTrack(canvas, g, i, shown);
     }
     canvas.restore();
 
@@ -603,7 +681,7 @@ class _RenderEqualizer extends RenderBox {
     }
   }
 
-  void _paintGraph(Canvas canvas, KzEqualizerGeometry g) {
+  void _paintGraph(Canvas canvas, KzEqualizerGeometry g, List<double> shown) {
     final d = _data;
     final panel = RRect.fromRectAndRadius(
       g.graph,
@@ -632,7 +710,7 @@ class _RenderEqualizer extends RenderBox {
       for (var i = 0; i < _bandCount; i++)
         Offset(
           g.graphXOf(d.frequencies[i]),
-          g.graphYOfFraction(d.fractionOf(d.gains[i])),
+          g.graphYOfFraction(d.fractionOf(shown[i])),
         ),
     ];
     final curve = _smoothPath(points);
@@ -696,7 +774,12 @@ class _RenderEqualizer extends RenderBox {
     return path;
   }
 
-  void _paintTrack(Canvas canvas, KzEqualizerGeometry g, int band) {
+  void _paintTrack(
+    Canvas canvas,
+    KzEqualizerGeometry g,
+    int band,
+    List<double> shown,
+  ) {
     final d = _data;
     final selected = band == d.selected;
     final rect = g.track(band);
@@ -735,7 +818,7 @@ class _RenderEqualizer extends RenderBox {
       canvas.drawCircle(Offset(x, g.yOfFraction(f)), 3.5, dotPaint);
     }
 
-    final valueY = g.yOfFraction(d.fractionOf(d.gains[band]));
+    final valueY = g.yOfFraction(d.fractionOf(shown[band]));
     final zeroY = g.yOfFraction(zeroFraction);
     if (valueY != zeroY) {
       final fillWidth = g.thumbRadius * 2;

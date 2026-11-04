@@ -178,4 +178,86 @@ void main() {
 
     expect(find.text('-3.0'), findsOneWidget);
   });
+
+  group('motion', () {
+    List<double> shown(WidgetTester tester) =>
+        tester.state<KzEqualizerState>(find.byType(KzEqualizer)).shownGains;
+
+    testWidgets('a gain change glides fast and eases out to the target', (
+      tester,
+    ) async {
+      await pump(tester);
+
+      eq.setGain(0, 8);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 40));
+      final early = shown(tester)[0];
+      await tester.pump(const Duration(milliseconds: 80));
+      final mid = shown(tester)[0];
+
+      // Exponential ease-out: most of the way in the first frames.
+      expect(early, greaterThan(4));
+      expect(early, lessThan(8));
+      expect(mid, greaterThan(early));
+      expect(eq.gains[0], 8);
+
+      await tester.pumpAndSettle();
+      expect(shown(tester)[0], 8);
+    });
+
+    testWidgets('a glide only repaints: no rebuild on each tick', (
+      tester,
+    ) async {
+      final raw = find.byWidgetPredicate(
+        (w) => w.runtimeType.toString() == '_RawEqualizer',
+      );
+      await pump(tester);
+      eq.setGain(0, 8);
+      await tester.pump();
+      final first = tester.widget(raw);
+
+      await tester.pump(const Duration(milliseconds: 40));
+      await tester.pump(const Duration(milliseconds: 40));
+
+      expect(shown(tester)[0], lessThan(8));
+      expect(identical(tester.widget(raw), first), isTrue);
+    });
+
+    testWidgets('a new target mid-way continues from what is shown', (
+      tester,
+    ) async {
+      await pump(tester);
+      eq.setGain(0, 8);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 40));
+      final before = shown(tester)[0];
+
+      eq.setGain(0, -8);
+      await tester.pump();
+
+      expect(shown(tester)[0], closeTo(before, 0.5));
+      await tester.pumpAndSettle();
+      expect(shown(tester)[0], -8);
+    });
+
+    testWidgets('jumps at once when the platform reduces motion', (
+      tester,
+    ) async {
+      await pumpKz(
+        tester,
+        MediaQuery(
+          data: const MediaQueryData(disableAnimations: true),
+          child: SizedBox(
+            width: width,
+            child: KzEqualizer(controller: eq, frequencies: frequencies),
+          ),
+        ),
+      );
+
+      eq.setGain(0, 8);
+      await tester.pump();
+
+      expect(shown(tester)[0], 8);
+    });
+  });
 }

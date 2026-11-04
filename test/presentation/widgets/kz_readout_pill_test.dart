@@ -28,4 +28,40 @@ void main() {
     expect(const KzReadoutPill(label: 'x', fraction: 3).marker, 1);
     expect(const KzReadoutPill(label: 'x', fraction: -1).marker, 0);
   });
+
+  testWidgets('the marker glides to a new value', (tester) async {
+    double marker() =>
+        (tester
+                        .widget<CustomPaint>(
+                          find.descendant(
+                            of: find.byType(KzReadoutPill),
+                            matching: find.byType(CustomPaint),
+                          ),
+                        )
+                        .painter!
+                    as dynamic)
+                .marker
+            as double;
+    final fraction = ValueNotifier<double>(0);
+    addTearDown(fraction.dispose);
+    await pumpKz(
+      tester,
+      ValueListenableBuilder<double>(
+        valueListenable: fraction,
+        builder: (context, f, _) => SizedBox(
+          width: 160,
+          child: KzReadoutPill(label: 'x', fraction: f),
+        ),
+      ),
+    );
+
+    fraction.value = 1;
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 40));
+
+    expect(marker(), greaterThan(0));
+    expect(marker(), lessThan(1));
+    await tester.pumpAndSettle();
+    expect(marker(), 1);
+  });
 }

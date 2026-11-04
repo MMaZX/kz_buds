@@ -62,5 +62,46 @@ Future<void> rcspFind(
   );
 }
 
+/// Logs the live noise attribute and the device's noise table. With [mode]
+/// (0 off, 1 ANC, 2 transparency) it first sends that mode's table entry,
+/// as the KZ app does, then reads the live attribute back.
+Future<void> rcspNoise(
+  RcspProtocol protocol,
+  void Function(String message) log, {
+  int? mode,
+}) async {
+  Future<RcspSysInfo> read() async => RcspSysInfo.parse(
+    (await protocol.send(
+      RcspCommands.getSysInfo(
+        function: RcspSysFunction.public,
+        mask: RcspSysAttr.maskOf([
+          RcspSysAttr.noiseLive,
+          RcspSysAttr.noiseTable,
+        ]),
+      ),
+    )).payload,
+  );
+
+  final before = await read();
+  log('noise live ${before.noise}');
+  final table = before.noiseTable;
+  log('noise table ${table ?? 'missing'}');
+  if (mode == null) return;
+
+  final entry = table?.where((e) => e.mode == mode).firstOrNull;
+  if (entry == null) {
+    log('mode $mode is not in the device table; nothing sent');
+    return;
+  }
+  final set = RcspCommands.setNoise(entry);
+  log('noise set: mode $mode, payload ${_hex(set.payload)}');
+  final answer = await protocol.send(set);
+  log(
+    'noise set answered: status ${answer.status}, '
+    'payload ${_hex(answer.payload)}',
+  );
+  log('noise live after ${(await read()).noise}');
+}
+
 String _hex(List<int> bytes) =>
     bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ');

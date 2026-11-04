@@ -51,6 +51,21 @@ void main() {
       expect(cmd.payload, hex('ff 0c 04 06 00 fd fd 04 fa 01 02 02 02 02'));
     });
 
+    test('SET_SYS_INFO noise is func ff plus the 9-byte attr 13 entry', () {
+      final cmd = RcspCommands.setNoise(
+        const RcspNoise(
+          mode: 2,
+          leftMax: 0x0102,
+          rightMax: 0x0304,
+          leftCurrent: 0x0506,
+          rightCurrent: 0x0708,
+        ),
+      );
+
+      expect(cmd.opcode, RcspOpcode.setSysInfo);
+      expect(cmd.payload, hex('ff 0a 0d 02 01 02 03 04 05 06 07 08'));
+    });
+
     test('ADV_GET_INFO carries the mask as u32 BE', () {
       final cmd = RcspCommands.advGetInfo();
 
@@ -184,6 +199,39 @@ void main() {
           rightCurrent: 0x0060,
         ),
       );
+    });
+
+    test('noise table reads the count and one 9-byte entry per mode', () {
+      final info = RcspSysInfo.parse(
+        hex(
+          'ff 14 0e 02 '
+          '00 00 00 00 00 00 00 00 00 '
+          '01 00 0a 00 0b 00 03 00 04',
+        ),
+      );
+
+      expect(info.noiseTable, const [
+        RcspNoise(
+          mode: 0,
+          leftMax: 0,
+          rightMax: 0,
+          leftCurrent: 0,
+          rightCurrent: 0,
+        ),
+        RcspNoise(
+          mode: 1,
+          leftMax: 10,
+          rightMax: 11,
+          leftCurrent: 3,
+          rightCurrent: 4,
+        ),
+      ]);
+    });
+
+    test('a noise table shorter than its count is rejected', () {
+      final info = RcspSysInfo.parse(hex('ff 05 0e 02 00 00 00'));
+
+      expect(() => info.noiseTable, throwsFormatException);
     });
 
     test('ADV battery maps 0 to null and reads the charging bit', () {

@@ -86,6 +86,13 @@ abstract final class RcspCommands {
     items: [RcspTlv(RcspSysAttr.eq, eq.encode())],
   );
 
+  /// Sets the noise mode. Send an entry of [RcspSysInfo.noiseTable], as the
+  /// KZ app does (BaseManager.setVoiceMode), not a hand-built one.
+  static RcspRequest setNoise(RcspNoise noise) => setSysInfo(
+    function: RcspSysFunction.public,
+    items: [RcspTlv(RcspSysAttr.noiseLive, noise.encode())],
+  );
+
   static RcspRequest advGetInfo({int mask = 0xffffffff}) =>
       RcspRequest(RcspOpcode.advGetInfo, _u32(mask));
 
@@ -235,6 +242,23 @@ class RcspSysInfo {
     return v == null ? null : RcspNoise.parse(v);
   }
 
+  /// Attr 14: `[count][count x 9-byte entry]`, one entry per noise mode the
+  /// device supports. Null when the attribute is missing.
+  List<RcspNoise>? get noiseTable {
+    final v = values[RcspSysAttr.noiseTable];
+    if (v == null || v.isEmpty) return null;
+    final count = v[0];
+    if (v.length < 1 + count * RcspNoise.length) {
+      throw FormatException('Noise table shorter than $count entries', v);
+    }
+    return [
+      for (var i = 0; i < count; i++)
+        RcspNoise.parse(
+          v.sublist(1 + i * RcspNoise.length, 1 + (i + 1) * RcspNoise.length),
+        ),
+    ];
+  }
+
   int? _single(int attr) {
     final v = values[attr];
     return v == null || v.isEmpty ? null : v[0];
@@ -293,8 +317,15 @@ class RcspNoise {
     required this.rightCurrent,
   });
 
+  static const length = 9;
+
+  /// 0 off, 1 noise cancelling, 2 transparency (VoiceMode.java).
+  static const off = 0;
+  static const anc = 1;
+  static const transparency = 2;
+
   factory RcspNoise.parse(List<int> value) {
-    if (value.length != 9) {
+    if (value.length != length) {
       throw FormatException('Noise attribute needs 9 bytes', value);
     }
     int u16(int i) => (value[i] << 8) | value[i + 1];
@@ -312,6 +343,14 @@ class RcspNoise {
   final int rightMax;
   final int leftCurrent;
   final int rightCurrent;
+
+  Uint8List encode() => Uint8List.fromList([
+    _byte(mode, 'mode'),
+    ..._u16Bytes(leftMax, 'leftMax'),
+    ..._u16Bytes(rightMax, 'rightMax'),
+    ..._u16Bytes(leftCurrent, 'leftCurrent'),
+    ..._u16Bytes(rightCurrent, 'rightCurrent'),
+  ]);
 
   @override
   bool operator ==(Object other) =>
@@ -438,6 +477,13 @@ List<int> _u32(int v) => [
   (v >> 8) & 0xff,
   v & 0xff,
 ];
+
+List<int> _u16Bytes(int value, String name) {
+  if (value < 0 || value > 0xffff) {
+    throw ArgumentError.value(value, name, 'must fit in two bytes');
+  }
+  return [(value >> 8) & 0xff, value & 0xff];
+}
 
 int _byte(int value, String name) {
   if (value < 0 || value > 0xff) {

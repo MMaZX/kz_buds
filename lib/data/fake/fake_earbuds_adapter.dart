@@ -4,6 +4,7 @@ import '../../domain/capabilities/capability.dart';
 import '../../domain/entities/anc_mode.dart';
 import '../../domain/entities/battery_status.dart';
 import '../../domain/entities/earbuds_identity.dart';
+import '../../domain/entities/eq_settings.dart';
 import '../../domain/entities/find_target.dart';
 import '../../domain/entities/link_state.dart';
 import '../../domain/ports/earbuds_port.dart';
@@ -31,6 +32,30 @@ class FakeEarbudsAdapter implements EarbudsPort {
   FindTarget? _findSoundTarget;
 
   final _ancController = StreamController<AncMode>.broadcast();
+  final _eqController = StreamController<EqSettings>.broadcast();
+  EqSettings _eq = EqSettings(mode: 0, gains: List.filled(10, 0));
+
+  /// Dev profile: ISO bands, three named presets and a custom slot.
+  static final eqDevProfile = EqProfile(
+    frequencies: const [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000],
+    presets: [
+      EqPresetData(mode: 0, gains: List.filled(10, 0), name: 'Flat'),
+      const EqPresetData(
+        mode: 1,
+        gains: [6, 5, 4, 2, 0, 0, 0, 0, 0, 0],
+        name: 'Bass',
+      ),
+      const EqPresetData(
+        mode: 2,
+        gains: [-2, -1, 0, 1, 3, 4, 3, 1, 0, -1],
+        name: 'Vocal',
+      ),
+      EqPresetData(mode: 6, gains: List.filled(10, 0)),
+    ],
+    customMode: 6,
+    minGain: -12,
+    maxGain: 12,
+  );
   final _batteryController = StreamController<BatteryStatus>.broadcast();
   final _linkController = StreamController<LinkState>.broadcast();
 
@@ -97,6 +122,28 @@ class FakeEarbudsAdapter implements EarbudsPort {
   }
 
   @override
+  Future<EqProfile?> eqProfile() async =>
+      _capabilities.contains(Capability.eq) ? eqDevProfile : null;
+
+  /// Current settings at subscription time, then every change; subscribes
+  /// at once, so a change right after `listen` is never lost.
+  @override
+  Stream<EqSettings> watchEq() => Stream.multi((controller) {
+    controller.add(_eq);
+    final sub = _eqController.stream.listen(controller.add);
+    controller.onCancel = sub.cancel;
+  });
+
+  @override
+  Future<void> setEq(EqSettings settings) async {
+    if (!_capabilities.contains(Capability.eq)) {
+      throw UnsupportedError('Device does not report Capability.eq');
+    }
+    _eq = settings;
+    _eqController.add(settings);
+  }
+
+  @override
   Future<void> playFindSound(FindTarget target) async {
     if (!_capabilities.contains(Capability.findBuds)) {
       throw UnsupportedError('Device does not report Capability.findBuds');
@@ -109,6 +156,7 @@ class FakeEarbudsAdapter implements EarbudsPort {
 
   Future<void> dispose() async {
     await _ancController.close();
+    await _eqController.close();
     await _batteryController.close();
     await _linkController.close();
   }

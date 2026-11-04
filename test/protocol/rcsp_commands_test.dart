@@ -234,6 +234,38 @@ void main() {
       expect(() => info.noiseTable, throwsFormatException);
     });
 
+    test('EQ presets read the band frequencies and seven presets', () {
+      // Carol Pro, sys info attr 12, live 2026-11-04.
+      final value = hex(
+        '0a 00 5f 00 c3 01 40 11 94 18 38 27 10 2e e0 23 28 36 b0 00 1e '
+        '00 00 fd fd 04 fa 01 02 02 02 02 '
+        '01 03 fd fc 03 fd 01 02 fe 02 fd '
+        '02 01 fb fc 03 fd 02 02 fe 02 fc '
+        '03 00 fb fc 03 ff 02 02 fe 02 fc '
+        '04 00 00 00 04 04 04 00 02 03 04 '
+        '05 fd fd 00 02 01 02 fe 02 02 04 '
+        '06 00 00 00 00 00 00 00 00 00 00',
+      );
+      final info = RcspSysInfo.parse([0xff, value.length + 1, 0x0c, ...value]);
+      final presets = info.eqPresets!;
+
+      expect(presets.frequencies, [
+        95, 195, 320, 4500, 6200, 10000, 12000, 9000, 14000, 30, //
+      ]);
+      expect(presets.presets, hasLength(7));
+      expect(
+        presets.presets.first,
+        RcspEq(mode: 0, gains: [0, -3, -3, 4, -6, 1, 2, 2, 2, 2]),
+      );
+      expect(presets.presets.last, RcspEq(mode: 6, gains: List.filled(10, 0)));
+    });
+
+    test('EQ presets shorter than announced are rejected', () {
+      final info = RcspSysInfo.parse(hex('ff 04 0c 02 00 1e'));
+
+      expect(() => info.eqPresets, throwsFormatException);
+    });
+
     test('ADV battery maps 0 to null and reads the charging bit', () {
       final info = RcspAdvInfo.parse(hex('04 00 5a d0 00 02 08 02'));
 

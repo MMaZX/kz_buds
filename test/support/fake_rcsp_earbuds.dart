@@ -17,7 +17,10 @@ class FakeRcspEarbuds implements SppLink {
     this.noiseTable = defaultNoiseTable,
     this.liveNoiseMode = 1,
     this.setSysInfoStatus = 0,
-  }) : _auth = deviceAuth ?? RcspAuth();
+    List<int> eq = const [0, 0, 0xfd, 0xfd, 4, 0xfa, 1, 2, 2, 2, 2],
+    this.eqPresets = carolEqPresets,
+  }) : eq = List.of(eq),
+       _auth = deviceAuth ?? RcspAuth();
 
   final RcspAuth _auth;
   List<int> advBattery;
@@ -36,6 +39,27 @@ class FakeRcspEarbuds implements SppLink {
 
   /// Response status for SET_SYS_INFO; non-zero plays a rejection.
   final int setSysInfoStatus;
+
+  /// Sys info attr 4 as the device holds it: `[mode][10 x s8]`. A
+  /// SET_SYS_INFO with attr 4 replaces it.
+  List<int> eq;
+
+  /// Sys info attr 12; empty leaves the attribute out.
+  final List<int> eqPresets;
+
+  /// The Carol Pro's attr 12 (live 2026-11-04): frequencies out of order,
+  /// seven presets, mode 6 all zero.
+  static const carolEqPresets = [
+    0x0a, 0x00, 0x5f, 0x00, 0xc3, 0x01, 0x40, 0x11, 0x94, 0x18, 0x38, //
+    0x27, 0x10, 0x2e, 0xe0, 0x23, 0x28, 0x36, 0xb0, 0x00, 0x1e,
+    0, 0, 0xfd, 0xfd, 4, 0xfa, 1, 2, 2, 2, 2,
+    1, 3, 0xfd, 0xfc, 3, 0xfd, 1, 2, 0xfe, 2, 0xfd,
+    2, 1, 0xfb, 0xfc, 3, 0xfd, 2, 2, 0xfe, 2, 0xfc,
+    3, 0, 0xfb, 0xfc, 3, 0xff, 2, 2, 0xfe, 2, 0xfc,
+    4, 0, 0, 0, 4, 4, 4, 0, 2, 3, 4,
+    5, 0xfd, 0xfd, 0, 2, 1, 2, 0xfe, 2, 2, 4,
+    6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  ];
 
   static const defaultNoiseTable = [
     [0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -65,6 +89,11 @@ class FakeRcspEarbuds implements SppLink {
     } else {
       final request = RcspFrame.decode(bytes);
       requests.add(request);
+      if (request.opcode == RcspOpcode.setSysInfo && setSysInfoStatus == 0) {
+        for (final item in RcspTlv.parseAll(request.payload.sublist(1))) {
+          if (item.type == RcspSysAttr.eq) eq = List.of(item.value);
+        }
+      }
       final payload = switch (request.opcode) {
         RcspOpcode.advGetInfo => [0x04, 0x00, ...advBattery],
         RcspOpcode.getTargetInfo => [
@@ -80,6 +109,14 @@ class FakeRcspEarbuds implements SppLink {
         RcspOpcode.getSysInfo => [
           0xff, 0x02, 0x00, 0x50, //
           0x0a, 0x0d, liveNoiseMode, 0, 10, 0, 10, 0, 5, 0, 5,
+          eq.length + 1,
+          0x04,
+          ...eq,
+          if (eqPresets.isNotEmpty) ...[
+            eqPresets.length + 1,
+            0x0c,
+            ...eqPresets,
+          ],
           if (noiseTable.isNotEmpty) ...[
             2 + noiseTable.length * 9,
             0x0e,

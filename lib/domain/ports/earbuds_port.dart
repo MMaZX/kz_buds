@@ -2,6 +2,7 @@ import '../capabilities/capability.dart';
 import '../entities/anc_mode.dart';
 import '../entities/battery_status.dart';
 import '../entities/earbuds_identity.dart';
+import '../entities/eq_settings.dart';
 import '../entities/find_target.dart';
 import '../entities/link_state.dart';
 
@@ -27,6 +28,17 @@ abstract class EarbudsPort {
 
   /// Throws [UnsupportedError] if [Capability.anc] is not reported.
   Future<void> setAncMode(AncMode mode);
+
+  /// The equalizer's bands, presets and range; null without
+  /// [Capability.eq].
+  Future<EqProfile?> eqProfile();
+
+  /// Current settings first, then every change. Only meaningful with
+  /// [Capability.eq].
+  Stream<EqSettings> watchEq();
+
+  /// Throws [UnsupportedError] if [Capability.eq] is not reported.
+  Future<void> setEq(EqSettings settings);
 
   /// Plays a locating sound on [target]. Throws [UnsupportedError] if
   /// [Capability.findBuds] is not reported. A single side may stay silent

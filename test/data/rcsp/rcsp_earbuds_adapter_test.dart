@@ -9,6 +9,7 @@ import 'package:kz_buds/domain/capabilities/capability.dart';
 import 'package:kz_buds/domain/entities/anc_mode.dart';
 import 'package:kz_buds/domain/entities/battery_status.dart';
 import 'package:kz_buds/domain/entities/earbuds_identity.dart';
+import 'package:kz_buds/domain/entities/eq_settings.dart';
 import 'package:kz_buds/domain/entities/find_target.dart';
 import 'package:kz_buds/domain/entities/link_state.dart';
 
@@ -165,6 +166,7 @@ void main() {
       expect(await adapter.capabilities(), {
         Capability.findBuds,
         Capability.anc,
+        Capability.eq,
       });
     });
 
@@ -173,7 +175,7 @@ void main() {
       adapter = build();
       await adapter.connect();
 
-      expect(await adapter.capabilities(), {Capability.findBuds});
+      expect(await adapter.capabilities(), isNot(contains(Capability.anc)));
       expect(() => adapter.setAncMode(AncMode.ambient), throwsUnsupportedError);
     });
 
@@ -182,7 +184,10 @@ void main() {
       adapter = build();
       await adapter.connect();
 
-      expect(await adapter.capabilities(), isEmpty);
+      expect(
+        await adapter.capabilities(),
+        isNot(contains(Capability.findBuds)),
+      );
       expect(
         () => adapter.playFindSound(FindTarget.left),
         throwsUnsupportedError,
@@ -265,6 +270,99 @@ void main() {
     await pumpEventQueue();
 
     expect(logs, contains('[device] push op 09: ff 0a 0d 02'));
+  });
+
+  group('EQ', () {
+    const carolStart = <double>[0, -3, -3, 4, -6, 1, 2, 2, 2, 2];
+
+    test('comes from the device flags and its preset table', () async {
+      await adapter.connect();
+
+      expect(await adapter.capabilities(), contains(Capability.eq));
+      expect(
+        await adapter.watchEq().first,
+        const EqSettings(mode: 0, gains: carolStart),
+      );
+    });
+
+    test('no EQ when the device bans it or has no presets', () async {
+      for (final fake in [
+        FakeRcspEarbuds(supportFlags: const [0x54, 0x00]),
+        FakeRcspEarbuds(eqPresets: const []),
+      ]) {
+        earbuds = fake;
+        adapter = build();
+        await adapter.connect();
+
+        expect(await adapter.capabilities(), isNot(contains(Capability.eq)));
+        expect(await adapter.eqProfile(), isNull);
+        expect(
+          () => adapter.setEq(const EqSettings(mode: 6, gains: [])),
+          throwsUnsupportedError,
+        );
+        await adapter.dispose();
+      }
+    });
+
+    test('the profile keeps the presets and falls back to standard bands '
+        'when the device ones are out of order', () async {
+      await adapter.connect();
+      final profile = (await adapter.eqProfile())!;
+
+      expect(profile.frequencies, RcspEarbudsAdapter.standardBands);
+      expect(profile.customMode, 6);
+      expect(profile.presets.map((p) => p.mode), [0, 1, 2, 3, 4, 5, 6]);
+      expect(profile.presets.first.gains, carolStart);
+      expect(profile.minGain, lessThan(0));
+      expect(profile.maxGain, greaterThan(0));
+    });
+
+    test('the profile uses the device bands when they ascend', () async {
+      final presets = List.of(FakeRcspEarbuds.carolEqPresets);
+      const ascending = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
+      for (var i = 0; i < 10; i++) {
+        presets[1 + i * 2] = ascending[i] >> 8;
+        presets[2 + i * 2] = ascending[i] & 0xff;
+      }
+      earbuds = FakeRcspEarbuds(eqPresets: presets);
+      adapter = build();
+      await adapter.connect();
+
+      expect((await adapter.eqProfile())!.frequencies, ascending);
+    });
+
+    test('setEq sends attr 4 and reports the new settings', () async {
+      await adapter.connect();
+      final next = adapter.watchEq().skip(1).first;
+      const custom = EqSettings(
+        mode: 6,
+        gains: [1, -2, 0, 0, 0, 0, 0, 0, 0, 3],
+      );
+
+      await adapter.setEq(custom);
+
+      final sets = earbuds.requests
+          .where((r) => r.opcode == RcspOpcode.setSysInfo)
+          .map((r) => r.payload);
+      expect(sets, [hex('ff 0c 04 06 01 fe 00 00 00 00 00 00 00 03')]);
+      expect(await next, custom);
+    });
+
+    test('a rejected set keeps the previous settings', () async {
+      earbuds = FakeRcspEarbuds(setSysInfoStatus: 1);
+      adapter = build();
+      await adapter.connect();
+
+      await expectLater(
+        adapter.setEq(EqSettings(mode: 6, gains: List.filled(10, 1))),
+        throwsA(isA<RcspCommandException>()),
+      );
+
+      expect(
+        await adapter.watchEq().first,
+        const EqSettings(mode: 0, gains: carolStart),
+      );
+    });
   });
 
   group('find sound', () {

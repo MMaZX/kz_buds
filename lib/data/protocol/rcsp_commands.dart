@@ -27,6 +27,7 @@ abstract final class RcspSysAttr {
   static const battery = 0;
   static const volume = 1;
   static const eq = 4;
+  static const eqPresets = 12;
   static const noiseLive = 13;
   static const noiseTable = 14;
 
@@ -242,6 +243,12 @@ class RcspSysInfo {
     return v == null ? null : RcspNoise.parse(v);
   }
 
+  /// Attr 12, null when missing.
+  RcspEqPresets? get eqPresets {
+    final v = values[RcspSysAttr.eqPresets];
+    return v == null || v.isEmpty ? null : RcspEqPresets.parse(v);
+  }
+
   /// Attr 14: `[count][count x 9-byte entry]`, one entry per noise mode the
   /// device supports. Null when the attribute is missing.
   List<RcspNoise>? get noiseTable {
@@ -305,6 +312,38 @@ class RcspEq {
 
   @override
   String toString() => 'RcspEq(mode: $mode, gains: $gains)';
+}
+
+/// Sys info attr 12: `[n][n x u16 BE Hz][7 x ([mode][n x s8 dB])]`
+/// (RcspDataHandler.parseEqPresetInfo). Mode bit 7 marks a dynamic EQ and
+/// is dropped here.
+class RcspEqPresets {
+  const RcspEqPresets({required this.frequencies, required this.presets});
+
+  factory RcspEqPresets.parse(List<int> value) {
+    final n = value[0];
+    if (n != RcspEq.bandCount ||
+        value.length < 1 + n * 2 + presetCount * (1 + n)) {
+      throw FormatException('EQ presets do not match $n bands', value);
+    }
+    var i = 1;
+    final frequencies = [
+      for (var b = 0; b < n; b++, i += 2) (value[i] << 8) | value[i + 1],
+    ];
+    final presets = <RcspEq>[];
+    for (var p = 0; p < presetCount; p++, i += 1 + n) {
+      presets.add(
+        RcspEq.parse([value[i] & 0x7f, ...value.sublist(i + 1, i + 1 + n)]),
+      );
+    }
+    return RcspEqPresets(frequencies: frequencies, presets: presets);
+  }
+
+  static const presetCount = 7;
+
+  /// As the device reports them; the Carol Pro's are not in order.
+  final List<int> frequencies;
+  final List<RcspEq> presets;
 }
 
 /// Live noise attribute (SDK order; only [mode] is confirmed on hardware).

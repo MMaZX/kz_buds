@@ -6,6 +6,7 @@ import 'package:kz_buds/domain/capabilities/capability.dart';
 import 'package:kz_buds/domain/entities/anc_mode.dart';
 import 'package:kz_buds/domain/entities/battery_status.dart';
 import 'package:kz_buds/domain/entities/earbuds_identity.dart';
+import 'package:kz_buds/domain/entities/eq_settings.dart';
 import 'package:kz_buds/domain/entities/find_target.dart';
 import 'package:kz_buds/domain/entities/link_state.dart';
 import 'package:kz_buds/domain/ports/earbuds_port.dart';
@@ -39,6 +40,15 @@ class _LinkBoundPort implements EarbudsPort {
 
   @override
   Future<void> setAncMode(AncMode mode) async {}
+
+  @override
+  Future<EqProfile?> eqProfile() async => null;
+
+  @override
+  Stream<EqSettings> watchEq() => const Stream.empty();
+
+  @override
+  Future<void> setEq(EqSettings settings) async {}
 
   @override
   Future<void> playFindSound(FindTarget target) async {}

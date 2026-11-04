@@ -29,7 +29,7 @@ void main() {
       'support RcspSupport(search: true, gameMode: false, anc: true, '
           'adaptiveAnc: false, eqBanned: false, doubleConnection: false)',
       'sys battery 80, volume null',
-      'eq null',
+      'eq RcspEq(mode: 0, gains: [0, -3, -3, 4, -6, 1, 2, 2, 2, 2])',
       'adv battery RcspBattery(L: RcspLevel(60%), R: RcspLevel(70%), '
           'case: null)',
     ]);

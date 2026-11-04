@@ -5,6 +5,7 @@ import '../../domain/capabilities/capability.dart';
 import '../../domain/entities/anc_mode.dart';
 import '../../domain/entities/battery_status.dart';
 import '../../domain/entities/earbuds_identity.dart';
+import '../../domain/entities/eq_settings.dart';
 import '../../domain/entities/find_target.dart';
 import '../../domain/entities/link_state.dart';
 import '../../domain/ports/earbuds_port.dart';
@@ -26,6 +27,28 @@ class RcspEarbudsAdapter implements EarbudsPort {
 
   static const _ancLog = DebugLog('anc');
   static const _deviceLog = DebugLog('device');
+  static const _eqLog = DebugLog('eq');
+
+  /// ISO 10-band centers, used when the device's own list is not usable
+  /// (the Carol Pro reports its frequencies out of order).
+  static const standardBands = [
+    31,
+    62,
+    125,
+    250,
+    500,
+    1000,
+    2000,
+    4000,
+    8000,
+    16000,
+  ];
+
+  /// Gain range offered for editing. Unproven on hardware: the SDK sends
+  /// signed dB bytes and states no limit; the Carol Pro presets stay
+  /// within +-6 dB.
+  static const eqMinGain = -12.0;
+  static const eqMaxGain = 12.0;
 
   final Future<RcspSppSession> Function() _openSession;
   final Duration batteryPoll;
@@ -36,6 +59,8 @@ class RcspEarbudsAdapter implements EarbudsPort {
   EarbudsIdentity? _identity;
   List<RcspNoise> _noiseTable = const [];
   AncMode? _ancMode;
+  EqProfile? _eqProfile;
+  EqSettings? _eq;
   RcspSppSession? _session;
   StreamSubscription<RcspFrame>? _deviceCommands;
   Timer? _poll;
@@ -43,6 +68,7 @@ class RcspEarbudsAdapter implements EarbudsPort {
   final _linkController = StreamController<LinkState>.broadcast();
   final _batteryController = StreamController<BatteryStatus>.broadcast();
   final _ancController = StreamController<AncMode>.broadcast();
+  final _eqController = StreamController<EqSettings>.broadcast();
 
   /// Opens the session and starts tracking the battery. Throws what the
   /// session throws (connect errors, auth failures) after reporting
@@ -73,6 +99,8 @@ class RcspEarbudsAdapter implements EarbudsPort {
       );
     }
     if (_support?.anc ?? false) await _readNoise(session);
+    final support = _support;
+    if (support != null && !support.eqBanned) await _readEq(session);
     _setLink(LinkState.connected);
     await _refreshBattery();
     _poll = Timer.periodic(batteryPoll, (_) => unawaited(_refreshBattery()));
@@ -88,7 +116,42 @@ class RcspEarbudsAdapter implements EarbudsPort {
       Capability.findBuds,
     if (_session != null && (_support?.anc ?? false) && _noiseTable.isNotEmpty)
       Capability.anc,
+    if (_session != null && _eqProfile != null) Capability.eq,
   };
+
+  @override
+  Future<EqProfile?> eqProfile() async => _session == null ? null : _eqProfile;
+
+  @override
+  Stream<EqSettings> watchEq() =>
+      _currentThenChanges(_eq, _eqController.stream);
+
+  /// Sends [settings] as sys info attr 4, then reads it back to log what
+  /// the device kept.
+  @override
+  Future<void> setEq(EqSettings settings) async {
+    final session = _session;
+    if (session == null || !(await capabilities()).contains(Capability.eq)) {
+      throw UnsupportedError('Device does not report Capability.eq');
+    }
+    final request = RcspCommands.setEq(
+      RcspEq(
+        mode: settings.mode,
+        gains: [for (final g in settings.gains) g.round()],
+      ),
+    );
+    _eqLog('set mode ${settings.mode}: payload ${_hex(request.payload)}');
+    try {
+      final response = await session.protocol.send(request);
+      _eqLog('set answered: status ${response.status}');
+    } on Object catch (error) {
+      _eqLog('set failed: $error');
+      rethrow;
+    }
+    _setEq(settings);
+    final kept = await _readCurrentEq(session);
+    _eqLog('device now holds $kept');
+  }
 
   /// Kept after a drop, so the app still shows which earbuds these are.
   @override
@@ -186,6 +249,78 @@ class RcspEarbudsAdapter implements EarbudsPort {
     await _linkController.close();
     await _batteryController.close();
     await _ancController.close();
+    await _eqController.close();
+  }
+
+  Future<void> _readEq(RcspSppSession session) async {
+    try {
+      final response = await session.protocol.send(
+        RcspCommands.getSysInfo(
+          function: RcspSysFunction.public,
+          mask: RcspSysAttr.maskOf([RcspSysAttr.eq, RcspSysAttr.eqPresets]),
+        ),
+      );
+      final info = RcspSysInfo.parse(response.payload);
+      final table = info.eqPresets;
+      final current = info.eq;
+      if (table == null || current == null) {
+        _eqLog('no EQ table or current EQ; EQ stays off');
+        return;
+      }
+      final ascending = _ascending(table.frequencies);
+      _eqLog(
+        'device bands ${table.frequencies}'
+        '${ascending ? '' : ' (out of order: using standard bands)'}',
+      );
+      _eqProfile = EqProfile(
+        frequencies: ascending ? table.frequencies : standardBands,
+        presets: [
+          for (final p in table.presets)
+            EqPresetData(mode: p.mode, gains: _doubles(p.gains)),
+        ],
+        customMode: RcspEq.customMode,
+        minGain: eqMinGain,
+        maxGain: eqMaxGain,
+      );
+      _eqLog('current $current');
+      _setEq(EqSettings(mode: current.mode, gains: _doubles(current.gains)));
+    } on Object catch (error) {
+      _eqProfile = null;
+      _eqLog('EQ read failed: $error');
+    }
+  }
+
+  Future<RcspEq?> _readCurrentEq(RcspSppSession session) async {
+    try {
+      final response = await session.protocol.send(
+        RcspCommands.getSysInfo(
+          function: RcspSysFunction.public,
+          mask: RcspSysAttr.maskOf([RcspSysAttr.eq]),
+        ),
+      );
+      return RcspSysInfo.parse(response.payload).eq;
+    } on Object catch (error) {
+      _eqLog('read back failed: $error');
+      return null;
+    }
+  }
+
+  static bool _ascending(List<int> hz) {
+    for (var i = 0; i < hz.length; i++) {
+      if (hz[i] < 20 || hz[i] > 20000) return false;
+      if (i > 0 && hz[i] <= hz[i - 1]) return false;
+    }
+    return hz.isNotEmpty;
+  }
+
+  static List<double> _doubles(List<int> values) => [
+    for (final v in values) v.toDouble(),
+  ];
+
+  void _setEq(EqSettings settings) {
+    if (settings == _eq) return;
+    _eq = settings;
+    if (!_eqController.isClosed) _eqController.add(settings);
   }
 
   Future<void> _readNoise(RcspSppSession session) async {
@@ -287,6 +422,7 @@ class RcspEarbudsAdapter implements EarbudsPort {
     _session = null;
     _support = null;
     _noiseTable = const [];
+    _eqProfile = null;
     _setLink(LinkState.disconnected);
   }
 

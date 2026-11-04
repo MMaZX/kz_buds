@@ -4,6 +4,7 @@ import 'package:kz_buds/domain/capabilities/capability.dart';
 import 'package:kz_buds/domain/entities/anc_mode.dart';
 import 'package:kz_buds/domain/entities/battery_status.dart';
 import 'package:kz_buds/domain/entities/earbuds_identity.dart';
+import 'package:kz_buds/domain/entities/eq_settings.dart';
 import 'package:kz_buds/domain/entities/find_target.dart';
 import 'package:kz_buds/domain/entities/link_state.dart';
 
@@ -130,5 +131,37 @@ void main() {
       expect(await fake.watchConnection().first, LinkState.connected);
       await fake.dispose();
     });
+  });
+
+  test('with EQ: a profile, flat to start, and setEq updates it', () async {
+    final fake = FakeEarbudsAdapter(capabilities: {Capability.eq});
+    final profile = (await fake.eqProfile())!;
+
+    expect(profile.frequencies, hasLength(10));
+    expect(profile.presets.map((p) => p.name), ['Flat', 'Bass', 'Vocal', null]);
+    expect(
+      await fake.watchEq().first,
+      EqSettings(mode: 0, gains: List.filled(10, 0)),
+    );
+
+    final next = fake.watchEq().skip(1).first;
+    final custom = EqSettings(
+      mode: profile.customMode,
+      gains: List.filled(10, 2),
+    );
+    await fake.setEq(custom);
+    expect(await next, custom);
+    await fake.dispose();
+  });
+
+  test('without EQ: no profile and setEq is unsupported', () async {
+    final fake = FakeEarbudsAdapter();
+
+    expect(await fake.eqProfile(), isNull);
+    expect(
+      () => fake.setEq(const EqSettings(mode: 0, gains: [])),
+      throwsUnsupportedError,
+    );
+    await fake.dispose();
   });
 }

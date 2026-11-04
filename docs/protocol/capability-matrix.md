@@ -9,7 +9,8 @@ States: **proven** (live bytes), **seen in code** (path:line), **seen in app onl
 | Physical noise mode | unknown | Not exposed by any connect-time query (L15) |
 | Noise mode set/get | proven | op 08/07 mask 0x2000/0x4000, attr 13/14, 9 bytes (VoiceMode.java). Set = SET_SYS_INFO func ff attr 13 with the device table entry; Carol Pro table has modes 0, 1, 2, all answered status 0 and heard live (2026-11-04) |
 | ANC modes (key cycle) | seen in code | C0/C1, ADV type 10, u32 BE bitmask (HandsetManager.java:115-138) |
-| EQ get/set | seen in code | op 07 mask 0x1010/08, attr 4, [mode][10×s8 dB], custom=6 (CommandBuilder.java:150-177) |
+| EQ get/set | proven | op 07 mask 0x1010/08, attr 4, [mode][10×s8 dB], custom=6 (CommandBuilder.java:150-177). Carol Pro live 2026-11-04: custom sets answered status 0, read back unchanged at +12 and -10 dB, heard; each set is followed by an unsolicited op 09 push with the new attr 4 |
+| EQ presets | proven | attr 12 `[n][n×u16 BE Hz][7×([mode][n×s8])]` (RcspDataHandler.parseEqPresetInfo); Carol Pro: 10 bands, frequencies out of order, mode 6 = custom |
 | Bass/treble | seen in code | op 08/07 mask 0x800, attr 11, bass s32 BE, treble s32 BE |
 | Key remap | seen in code | C0/C1, ADV type 2, triplets [key][action][function], 0xFF=cycle ANC (ParseHelper.java:599-616) |
 | Work mode (game mode) | seen in code | C0/C1, ADV type 5, 1 byte (HandsetManager.java:193-194) |

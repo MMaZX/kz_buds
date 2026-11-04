@@ -4,11 +4,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kz_buds/data/fake/fake_earbuds_adapter.dart';
 import 'package:kz_buds/domain/capabilities/capability.dart';
 import 'package:kz_buds/domain/entities/anc_mode.dart';
+import 'package:kz_buds/domain/entities/eq_settings.dart';
 import 'package:kz_buds/presentation/pages/anc_page.dart';
 import 'package:kz_buds/presentation/providers/eq_providers.dart';
 import 'package:kz_buds/presentation/theme/kz_palette.dart';
+import 'package:kz_buds/presentation/widgets/equalizer/kz_equalizer.dart';
 import 'package:kz_buds/presentation/widgets/kz_chip.dart';
-import 'package:kz_buds/presentation/widgets/kz_dot_slider.dart';
 import 'package:kz_buds/presentation/widgets/kz_nav_pill.dart';
 
 import '../support/pump_home.dart';
@@ -64,41 +65,70 @@ void main() {
       return container;
     }
 
-    testWidgets('shows ten bands and starts on Flat', (tester) async {
+    EqSettings? sent(ProviderContainer container) =>
+        container.read(eqSettingsProvider).value;
+
+    Future<void> tapVisible(WidgetTester tester, Finder finder) async {
+      await tester.ensureVisible(finder);
+      await tester.pumpAndSettle();
+      await tester.tap(finder);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('shows the equalizer on Flat with the band readouts', (
+      tester,
+    ) async {
       await openEq(tester);
-      expect(find.byType(KzDotSlider), findsNWidgets(10));
-      for (final label in eqBandLabels) {
-        expect(find.text(label), findsOneWidget);
-      }
+      expect(find.byType(KzEqualizer), findsOneWidget);
+      expect(find.text('F 31HZ'), findsOneWidget);
+      expect(find.text('GAIN 0.0 DB'), findsOneWidget);
       expect(chipSelected(tester, 'Flat'), isTrue);
     });
 
-    testWidgets('choosing Bass moves the sliders', (tester) async {
+    testWidgets('choosing Bass sends that preset', (tester) async {
       final container = await openEq(tester);
       await tester.tap(find.widgetWithText(KzChip, 'Bass'));
       await tester.pumpAndSettle();
       expect(chipSelected(tester, 'Bass'), isTrue);
-      expect(container.read(eqProvider).preset, EqPreset.bass);
-      expect(find.text('+6'), findsOneWidget);
+      expect(sent(container)?.mode, 1);
+      expect(find.text('+6.0'), findsOneWidget);
     });
 
-    testWidgets('dragging a band switches to Custom', (tester) async {
+    testWidgets('dragging a band sends the custom mode', (tester) async {
       final container = await openEq(tester);
-      await tester.drag(find.byType(KzDotSlider).first, const Offset(0, -60));
+      final box = find.byType(KzEqualizer);
+      final geometry = KzEqualizerGeometry(tester.getSize(box), 10);
+      final start =
+          tester.getTopLeft(box) +
+          Offset(geometry.track(0).center.dx, geometry.yOfFraction(0.5));
+      await tester.dragFrom(start, const Offset(0, -60));
       await tester.pumpAndSettle();
-      expect(container.read(eqProvider).preset, EqPreset.custom);
-      expect(container.read(eqProvider).gains.first, greaterThan(0));
+      expect(sent(container)?.mode, FakeEarbudsAdapter.eqDevProfile.customMode);
+      expect(sent(container)!.gains.first, greaterThan(0));
       expect(chipSelected(tester, 'Custom'), isTrue);
     });
 
-    testWidgets('Reset returns to Flat', (tester) async {
+    testWidgets('undo and redo send the previous gains as custom', (
+      tester,
+    ) async {
       final container = await openEq(tester);
       await tester.tap(find.widgetWithText(KzChip, 'Bass'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('RESET'));
+      await tapVisible(tester, find.bySemanticsLabel('Undo'));
+      expect(sent(container)?.gains, List.filled(10, 0.0));
+      await tapVisible(tester, find.bySemanticsLabel('Redo'));
+      expect(
+        sent(container)?.gains,
+        FakeEarbudsAdapter.eqDevProfile.presets[1].gains,
+      );
+    });
+
+    testWidgets('Reset sends flat gains', (tester) async {
+      final container = await openEq(tester);
+      await tester.tap(find.widgetWithText(KzChip, 'Bass'));
       await tester.pumpAndSettle();
-      expect(container.read(eqProvider).preset, EqPreset.flat);
-      expect(chipSelected(tester, 'Flat'), isTrue);
+      await tapVisible(tester, find.text('RESET'));
+      expect(sent(container)?.gains, List.filled(10, 0.0));
     });
   });
 

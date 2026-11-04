@@ -56,4 +56,30 @@ void main() {
     );
     expect(logs.last, startsWith('find stop answered: status 0'));
   });
+
+  test('snapshot keys every readable sys and ADV item by source', () async {
+    final snapshot = await rcspSnapshot(session.protocol, logs.add);
+
+    expect(snapshot['sys ff attr 00'], '50');
+    expect(snapshot['sys ff attr 0d'], '01 00 0a 00 0a 00 05 00 05');
+    expect(snapshot['adv type 00'], '3c 46 00');
+    expect(snapshot.keys.where((k) => k.startsWith('sys 00 ')), isNotEmpty);
+  });
+
+  test('diff lists changed, added and removed items, sorted', () {
+    final lines = rcspDiff(
+      {'adv type 05': '00', 'sys ff attr 0d': '01', 'sys ff attr 01': '08'},
+      {'adv type 05': '01', 'sys ff attr 0d': '01', 'sys ff attr 02': 'aa'},
+    );
+
+    expect(lines, [
+      'adv type 05: 00 -> 01',
+      'sys ff attr 01: 08 -> (gone)',
+      'sys ff attr 02: (new) -> aa',
+    ]);
+  });
+
+  test('diff of equal snapshots is empty', () {
+    expect(rcspDiff({'a': '01'}, {'a': '01'}), isEmpty);
+  });
 }

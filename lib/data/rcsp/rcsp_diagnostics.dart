@@ -103,5 +103,48 @@ Future<void> rcspNoise(
   log('noise live after ${(await read()).noise}');
 }
 
+/// Reads every sys info attribute (functions public and bt, full mask) and
+/// every ADV info item, keyed `sys ff attr 0d` / `adv type 05`, hex values.
+/// Read-only. Target info is left out: it carries the auth key and the
+/// device addresses. A query the device rejects is logged and skipped.
+Future<Map<String, String>> rcspSnapshot(
+  RcspProtocol protocol,
+  void Function(String message) log,
+) async {
+  final snapshot = <String, String>{};
+  for (final function in [RcspSysFunction.public, RcspSysFunction.bt]) {
+    final tag = function.toRadixString(16).padLeft(2, '0');
+    try {
+      final response = await protocol.send(
+        RcspCommands.getSysInfo(function: function, mask: 0xffffffff),
+      );
+      RcspSysInfo.parse(response.payload).values.forEach((attr, value) {
+        snapshot['sys $tag attr ${_hex([attr])}'] = _hex(value);
+      });
+    } on Object catch (error) {
+      log('sys $tag read failed: $error');
+    }
+  }
+  try {
+    final response = await protocol.send(RcspCommands.advGetInfo());
+    RcspAdvInfo.parse(response.payload).values.forEach((type, value) {
+      snapshot['adv type ${_hex([type])}'] = _hex(value);
+    });
+  } on Object catch (error) {
+    log('adv read failed: $error');
+  }
+  return snapshot;
+}
+
+/// One line per key whose value differs between two snapshots, sorted.
+List<String> rcspDiff(Map<String, String> before, Map<String, String> after) {
+  final keys = {...before.keys, ...after.keys}.toList()..sort();
+  return [
+    for (final key in keys)
+      if (before[key] != after[key])
+        '$key: ${before[key] ?? '(new)'} -> ${after[key] ?? '(gone)'}',
+  ];
+}
+
 String _hex(List<int> bytes) =>
     bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ');

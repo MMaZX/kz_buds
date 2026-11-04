@@ -14,6 +14,9 @@ class FakeRcspEarbuds implements SppLink {
     this.advBattery = const [60, 70, 0],
     this.supportFlags = const [0x44, 0x00],
     this.deviceName = 'CAROL PRO',
+    this.noiseTable = defaultNoiseTable,
+    this.liveNoiseMode = 1,
+    this.setSysInfoStatus = 0,
   }) : _auth = deviceAuth ?? RcspAuth();
 
   final RcspAuth _auth;
@@ -24,6 +27,21 @@ class FakeRcspEarbuds implements SppLink {
 
   /// Target info TLV 16; empty leaves the item out, as the Carol Pro does.
   final String deviceName;
+
+  /// Sys info attr 14 entries (9 bytes each); empty leaves the attribute out.
+  final List<List<int>> noiseTable;
+
+  /// Mode byte of sys info attr 13.
+  final int liveNoiseMode;
+
+  /// Response status for SET_SYS_INFO; non-zero plays a rejection.
+  final int setSysInfoStatus;
+
+  static const defaultNoiseTable = [
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [1, 0, 10, 0, 10, 0, 5, 0, 5],
+    [2, 0, 8, 0, 8, 0, 4, 0, 4],
+  ];
   final _incoming = StreamController<List<int>>();
   final _ownChallenge = Uint8List.fromList([0x00, ...List.filled(16, 0x5a)]);
   final requests = <RcspFrame>[];
@@ -59,13 +77,24 @@ class FakeRcspEarbuds implements SppLink {
             ...deviceName.codeUnits,
           ],
         ],
-        RcspOpcode.getSysInfo => const [0xff, 0x02, 0x00, 0x50],
+        RcspOpcode.getSysInfo => [
+          0xff, 0x02, 0x00, 0x50, //
+          0x0a, 0x0d, liveNoiseMode, 0, 10, 0, 10, 0, 5, 0, 5,
+          if (noiseTable.isNotEmpty) ...[
+            2 + noiseTable.length * 9,
+            0x0e,
+            noiseTable.length,
+            for (final entry in noiseTable) ...entry,
+          ],
+        ],
         _ => const <int>[],
       };
       _incoming.add(
         RcspFrame.response(
           opcode: request.opcode,
-          status: 0,
+          status: request.opcode == RcspOpcode.setSysInfo
+              ? setSysInfoStatus
+              : 0,
           sn: request.sn,
           payload: payload,
         ).encode(),
@@ -83,6 +112,16 @@ class FakeRcspEarbuds implements SppLink {
         0x05, 0xd6, 0x00, 0x00, 0x00, 0x00, 0x22, //
         0, 0, 0, 0, 0, 0, 0x02, ...battery, 0x01,
       ],
+    ).encode(),
+  );
+
+  /// Pushes any unsolicited command frame.
+  void push(int opcode, List<int> payload) => _incoming.add(
+    RcspFrame.command(
+      opcode: opcode,
+      sn: _sn++,
+      expectsResponse: false,
+      payload: payload,
     ).encode(),
   );
 

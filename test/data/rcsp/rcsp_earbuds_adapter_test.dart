@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kz_buds/data/protocol/rcsp_auth.dart';
 import 'package:kz_buds/data/protocol/rcsp_commands.dart';
@@ -31,6 +32,15 @@ void main() {
   });
 
   tearDown(() => adapter.dispose());
+
+  /// Collects what [DebugLog] prints during one test.
+  List<String> capturePrints() {
+    final printed = <String>[];
+    final original = debugPrint;
+    debugPrint = (message, {wrapWidth}) => printed.add(message ?? '');
+    addTearDown(() => debugPrint = original);
+    return printed;
+  }
 
   test('connect goes through connecting to connected', () async {
     final states = <LinkState>[];
@@ -149,11 +159,20 @@ void main() {
   });
 
   group('capabilities', () {
-    test('find buds comes from the device search flag; unproven ones stay '
-        'off', () async {
+    test('find buds and ANC come from the device flags', () async {
       await adapter.connect();
 
-      // The fake also reports ANC, which is not proven live yet.
+      expect(await adapter.capabilities(), {
+        Capability.findBuds,
+        Capability.anc,
+      });
+    });
+
+    test('no ANC when the device has no noise table', () async {
+      earbuds = FakeRcspEarbuds(noiseTable: const []);
+      adapter = build();
+      await adapter.connect();
+
       expect(await adapter.capabilities(), {Capability.findBuds});
       expect(() => adapter.setAncMode(AncMode.ambient), throwsUnsupportedError);
     });
@@ -173,6 +192,79 @@ void main() {
     test('empty while disconnected', () async {
       expect(await adapter.capabilities(), isEmpty);
     });
+  });
+
+  group('ANC', () {
+    test('starts from the live noise mode', () async {
+      earbuds = FakeRcspEarbuds(liveNoiseMode: 2);
+      adapter = build();
+      await adapter.connect();
+
+      expect(await adapter.watchAncMode().first, AncMode.ambient);
+    });
+
+    test('sends the device table entry for each mode and reports it', () async {
+      await adapter.connect();
+      final modes = <AncMode>[];
+      final sub = adapter.watchAncMode().listen(modes.add);
+
+      await adapter.setAncMode(AncMode.ambient);
+      await adapter.setAncMode(AncMode.off);
+      await adapter.setAncMode(AncMode.noiseCancelling);
+      await pumpEventQueue();
+
+      final sets = earbuds.requests
+          .where((r) => r.opcode == RcspOpcode.setSysInfo)
+          .map((r) => r.payload);
+      expect(sets, [
+        hex('ff 0a 0d 02 00 08 00 08 00 04 00 04'),
+        hex('ff 0a 0d 00 00 00 00 00 00 00 00 00'),
+        hex('ff 0a 0d 01 00 0a 00 0a 00 05 00 05'),
+      ]);
+      expect(modes, [
+        AncMode.noiseCancelling,
+        AncMode.ambient,
+        AncMode.off,
+        AncMode.noiseCancelling,
+      ]);
+      await sub.cancel();
+    });
+
+    test('a mode missing from the device table is unsupported', () async {
+      earbuds = FakeRcspEarbuds(
+        noiseTable: [FakeRcspEarbuds.defaultNoiseTable[0]],
+      );
+      adapter = build();
+      await adapter.connect();
+
+      expect(() => adapter.setAncMode(AncMode.ambient), throwsUnsupportedError);
+    });
+
+    test('a rejected set keeps the previous mode and logs it', () async {
+      final logs = capturePrints();
+      earbuds = FakeRcspEarbuds(setSysInfoStatus: 1);
+      adapter = build();
+      await adapter.connect();
+
+      await expectLater(
+        adapter.setAncMode(AncMode.ambient),
+        throwsA(isA<RcspCommandException>()),
+      );
+
+      expect(await adapter.watchAncMode().first, AncMode.noiseCancelling);
+      expect(logs.where((l) => l.contains('ambient')), isNotEmpty);
+    });
+  });
+
+  test('logs every unsolicited device frame with opcode and payload', () async {
+    final logs = capturePrints();
+    adapter = build();
+    await adapter.connect();
+
+    earbuds.push(RcspOpcode.sysInfoAutoUpdate, [0xff, 0x0a, 0x0d, 0x02]);
+    await pumpEventQueue();
+
+    expect(logs, contains('[device] push op 09: ff 0a 0d 02'));
   });
 
   group('find sound', () {

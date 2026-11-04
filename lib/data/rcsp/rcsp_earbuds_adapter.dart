@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import '../../core/debug_log.dart';
 import '../../domain/capabilities/capability.dart';
 import '../../domain/entities/anc_mode.dart';
 import '../../domain/entities/battery_status.dart';
@@ -15,12 +16,16 @@ import '../spp/rcsp_spp_session.dart';
 ///
 /// A capability is reported only when the device flags it (target info
 /// TLV 19) and the feature is proven on hardware
-/// (docs/protocol/capability-matrix.md): today, find buds.
+/// (docs/protocol/capability-matrix.md): find buds, and ANC when the device
+/// also has a noise mode table (sys info attr 14).
 class RcspEarbudsAdapter implements EarbudsPort {
   RcspEarbudsAdapter(
     this._openSession, {
     this.batteryPoll = const Duration(seconds: 60),
   });
+
+  static const _ancLog = DebugLog('anc');
+  static const _deviceLog = DebugLog('device');
 
   final Future<RcspSppSession> Function() _openSession;
   final Duration batteryPoll;
@@ -29,12 +34,15 @@ class RcspEarbudsAdapter implements EarbudsPort {
   BatteryStatus? _battery;
   RcspSupport? _support;
   EarbudsIdentity? _identity;
+  List<RcspNoise> _noiseTable = const [];
+  AncMode? _ancMode;
   RcspSppSession? _session;
   StreamSubscription<RcspFrame>? _deviceCommands;
   Timer? _poll;
 
   final _linkController = StreamController<LinkState>.broadcast();
   final _batteryController = StreamController<BatteryStatus>.broadcast();
+  final _ancController = StreamController<AncMode>.broadcast();
 
   /// Opens the session and starts tracking the battery. Throws what the
   /// session throws (connect errors, auth failures) after reporting
@@ -64,6 +72,7 @@ class RcspEarbudsAdapter implements EarbudsPort {
         productId: target?.productId,
       );
     }
+    if (_support?.anc ?? false) await _readNoise(session);
     _setLink(LinkState.connected);
     await _refreshBattery();
     _poll = Timer.periodic(batteryPoll, (_) => unawaited(_refreshBattery()));
@@ -77,6 +86,8 @@ class RcspEarbudsAdapter implements EarbudsPort {
   Future<Set<Capability>> capabilities() async => {
     if (_session != null && (_support?.searchDevice ?? false))
       Capability.findBuds,
+    if (_session != null && (_support?.anc ?? false) && _noiseTable.isNotEmpty)
+      Capability.anc,
   };
 
   /// Kept after a drop, so the app still shows which earbuds these are.
@@ -102,12 +113,37 @@ class RcspEarbudsAdapter implements EarbudsPort {
     controller.onCancel = sub.cancel;
   });
 
+  /// Starts from the live attribute read on connect, then follows the
+  /// modes this app sets. The firmware may not report a mode changed with
+  /// the earbud's own touch control (capability-matrix.md).
   @override
-  Stream<AncMode> watchAncMode() => const Stream.empty();
+  Stream<AncMode> watchAncMode() =>
+      _currentThenChanges(_ancMode, _ancController.stream);
 
+  /// Sends the device's own table entry for [mode], as the KZ app does.
   @override
-  Future<void> setAncMode(AncMode mode) async =>
+  Future<void> setAncMode(AncMode mode) async {
+    final session = _session;
+    if (session == null || !(await capabilities()).contains(Capability.anc)) {
       throw UnsupportedError('Device does not report Capability.anc');
+    }
+    final code = _noiseCode(mode);
+    final entry = _noiseTable.where((e) => e.mode == code).firstOrNull;
+    if (entry == null) {
+      _ancLog('set ${mode.name}: mode $code not in the device table');
+      throw UnsupportedError('Device has no noise mode $code');
+    }
+    final request = RcspCommands.setNoise(entry);
+    _ancLog('set ${mode.name}: payload ${_hex(request.payload)}');
+    try {
+      final response = await session.protocol.send(request);
+      _ancLog('set ${mode.name}: answered status ${response.status}');
+    } on Object catch (error) {
+      _ancLog('set ${mode.name}: failed: $error');
+      rethrow;
+    }
+    _setAncMode(mode);
+  }
 
   @override
   Future<void> playFindSound(FindTarget target) async {
@@ -149,6 +185,53 @@ class RcspEarbudsAdapter implements EarbudsPort {
     if (session != null) await session.close();
     await _linkController.close();
     await _batteryController.close();
+    await _ancController.close();
+  }
+
+  Future<void> _readNoise(RcspSppSession session) async {
+    try {
+      final response = await session.protocol.send(
+        RcspCommands.getSysInfo(
+          function: RcspSysFunction.public,
+          mask: RcspSysAttr.maskOf([
+            RcspSysAttr.noiseLive,
+            RcspSysAttr.noiseTable,
+          ]),
+        ),
+      );
+      final info = RcspSysInfo.parse(response.payload);
+      _noiseTable = info.noiseTable ?? const [];
+      final live = info.noise;
+      _ancLog('noise live $live, table $_noiseTable');
+      final mode = live == null ? null : _ancOf(live.mode);
+      if (mode != null) _setAncMode(mode);
+    } on Object catch (error) {
+      // No table, no ANC: report nothing rather than guess.
+      _noiseTable = const [];
+      _ancLog('noise read failed: $error');
+    }
+  }
+
+  static int _noiseCode(AncMode mode) => switch (mode) {
+    AncMode.off => RcspNoise.off,
+    AncMode.noiseCancelling => RcspNoise.anc,
+    AncMode.ambient => RcspNoise.transparency,
+  };
+
+  static AncMode? _ancOf(int code) => switch (code) {
+    RcspNoise.off => AncMode.off,
+    RcspNoise.anc => AncMode.noiseCancelling,
+    RcspNoise.transparency => AncMode.ambient,
+    _ => null,
+  };
+
+  static String _hex(List<int> bytes) =>
+      bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ');
+
+  void _setAncMode(AncMode mode) {
+    if (mode == _ancMode) return;
+    _ancMode = mode;
+    if (!_ancController.isClosed) _ancController.add(mode);
   }
 
   Future<RcspTargetInfo?> _readTargetInfo(RcspSppSession session) async {
@@ -176,6 +259,12 @@ class RcspEarbudsAdapter implements EarbudsPort {
   }
 
   void _onDeviceCommand(RcspFrame frame) {
+    // Diagnostic: shows whether the firmware reports changes made on the
+    // earbuds themselves (for example the noise mode set by touch).
+    _deviceLog(
+      'push op ${frame.opcode.toRadixString(16).padLeft(2, '0')}: '
+      '${_hex(frame.payload)}',
+    );
     if (frame.opcode != RcspOpcode.advStatus) return;
     try {
       _setBattery(RcspDeviceStatus.parse(frame.payload).battery);
@@ -197,6 +286,7 @@ class RcspEarbudsAdapter implements EarbudsPort {
     _deviceCommands = null;
     _session = null;
     _support = null;
+    _noiseTable = const [];
     _setLink(LinkState.disconnected);
   }
 

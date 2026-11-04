@@ -7,7 +7,7 @@ States: **proven** (live bytes), **seen in code** (path:line), **seen in app onl
 | Battery L/R | proven | ADV type 0: `[L][R][C]`, bit7 charging, bits0-6 % (L20) |
 | Case battery | unknown | Not reported; C byte always 0 (L17, L20) |
 | Physical noise mode | unknown | Not exposed by any connect-time query (L15) |
-| Noise mode set/get | seen in code | op 08/07 mask 0x2000/0x4000, attr 13/14, 9 bytes (VoiceMode.java) |
+| Noise mode set/get | proven | op 08/07 mask 0x2000/0x4000, attr 13/14, 9 bytes (VoiceMode.java). Set = SET_SYS_INFO func ff attr 13 with the device table entry; Carol Pro table has modes 0, 1, 2, all answered status 0 and heard live (2026-11-04) |
 | ANC modes (key cycle) | seen in code | C0/C1, ADV type 10, u32 BE bitmask (HandsetManager.java:115-138) |
 | EQ get/set | seen in code | op 07 mask 0x1010/08, attr 4, [mode][10×s8 dB], custom=6 (CommandBuilder.java:150-177) |
 | Bass/treble | seen in code | op 08/07 mask 0x800, attr 11, bass s32 BE, treble s32 BE |
@@ -46,8 +46,8 @@ States: **proven** (live bytes), **seen in code** (path:line), **seen in app onl
 
 - Attr 13 (live): 9 bytes `mode, leftMax, rightMax, leftCur, rightCur` (u16 BE)
 - Mode: 0 = off, 1 = ANC, 2 = transparency
-- The firmware does not report the hold-selected mode (returns 1 in all physical modes)
-- Attr 14 (table): saved noise table, 3 × 9 bytes (modes 0, 1, 2)
+- The firmware does not report the hold-selected mode: attr 13 keeps the last mode set over RCSP (read 0 after the app set off, 2026-11-04), and no push (C2 or 09) arrives when the mode changes by touch
+- Attr 14 (table): `[count][count × 9 bytes]`, one entry per mode (Carol Pro: 3, modes 0, 1, 2)
 
 ## Key Remap Details
 

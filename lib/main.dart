@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
+import 'core/debug_log.dart';
 import 'data/fake/fake_earbuds_adapter.dart';
 import 'data/rcsp/rcsp_earbuds_adapter.dart';
 import 'data/rcsp/reconnect_supervisor.dart';
@@ -46,7 +47,7 @@ EarbudsPort _earbudsPort() {
       discover: BluezEarbudsDiscovery().pairedEarbuds,
       connectOs: bluezConnectProfiles,
       openLink: LinuxRfcommLink.connect,
-      log: _reconnectLog,
+      log: _reconnectLog.call,
     ),
   );
   unawaited(_superviseLinux(adapter));
@@ -66,11 +67,11 @@ Future<void> _superviseLinux(RcspEarbudsAdapter adapter) async {
     osLink: bluezConnectedChanges(found.first.id),
     session: adapter.watchConnection(),
     connect: adapter.connect,
-    log: _reconnectLog,
+    log: _reconnectLog.call,
   ).start();
 }
 
-void _reconnectLog(String message) => debugPrint('[reconnect] $message');
+const _reconnectLog = DebugLog('reconnect');
 
 class KzBudsApp extends ConsumerWidget {
   const KzBudsApp({super.key});

@@ -14,6 +14,8 @@ abstract final class KzIcons {
   static const KzIconData tap = HugeIcons.strokeRoundedTap01;
   static const KzIconData gameMode = HugeIcons.strokeRoundedGameController03;
   static const KzIconData eq = HugeIcons.strokeRoundedAudioWave01;
+  static const KzIconData undo = HugeIcons.strokeRoundedUndo;
+  static const KzIconData redo = HugeIcons.strokeRoundedRedo;
   static const KzIconData batteryEmpty = HugeIcons.strokeRoundedBatteryEmpty;
   static const KzIconData batteryLow = HugeIcons.strokeRoundedBatteryLow;
   static const KzIconData batteryMedium =

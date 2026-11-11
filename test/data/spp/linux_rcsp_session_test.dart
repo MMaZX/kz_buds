@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kz_buds/data/spp/linux/linux_rcsp_session.dart';
+import 'package:kz_buds/domain/entities/bluetooth_off.dart';
 import 'package:kz_buds/domain/entities/detected_earbuds.dart';
 
 import '../../support/fake_rcsp_earbuds.dart';
@@ -22,6 +23,27 @@ void main() {
 
     expect(calls, ['os ${carol.id}', 'link ${carol.id}']);
     expect(session.osName, carol.name);
+  });
+
+  test('stops before touching the radio while Bluetooth is off', () async {
+    final calls = <String>[];
+
+    await expectLater(
+      openLinuxRcspSession(
+        isPoweredOn: () async => false,
+        discover: () async {
+          calls.add('discover');
+          return [carol];
+        },
+        connectOs: (id) async => calls.add('os'),
+        openLink: (id) async {
+          calls.add('link');
+          return FakeRcspEarbuds();
+        },
+      ),
+      throwsA(isA<BluetoothOff>()),
+    );
+    expect(calls, isEmpty);
   });
 
   test('fails without touching the radio when nothing is paired', () async {

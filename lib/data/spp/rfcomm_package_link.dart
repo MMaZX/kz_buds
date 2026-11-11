@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:bluetooth_rfcomm/bluetooth_rfcomm.dart';
 
 import '../../domain/entities/bluetooth_access_denied.dart';
+import '../../domain/entities/bluetooth_off.dart';
 import 'rcsp_spp_session.dart';
 
 /// [SppLink] over `bluetooth_rfcomm`, for Android and Windows. Not for Linux:
@@ -28,6 +29,8 @@ class RfcommPackageLink implements SppLink {
       );
     } on BluetoothPermissionException {
       throw const BluetoothAccessDenied();
+    } on BluetoothDisabledException {
+      throw const BluetoothOff();
     }
   }
 

@@ -28,6 +28,9 @@ import 'kz_route.dart';
 const bluetoothAccessHint =
     'Bluetooth access denied. Allow it for KZ Buds in system settings.';
 
+/// Shown under Reconnect while the Bluetooth radio is off.
+const bluetoothOffHint = 'Bluetooth is off. Turn it on to connect the earbuds.';
+
 class DeviceHomePage extends ConsumerWidget {
   const DeviceHomePage({super.key});
 
@@ -44,7 +47,7 @@ class DeviceHomePage extends ConsumerWidget {
     final mode = ref.watch(ancModeProvider).value ?? AncMode.off;
     final model = ref.watch(earbudsModelProvider);
     final connected = link.value == LinkState.connected;
-    final accessDenied = ref.watch(reconnectProvider);
+    final issue = ref.watch(reconnectProvider);
     final hasEq = capabilities.contains(Capability.eq);
     final hasRemap = capabilities.contains(Capability.buttonRemap);
     final tabs = ref.read(selectedTabProvider.notifier);
@@ -103,10 +106,14 @@ class DeviceHomePage extends ConsumerWidget {
                             ),
                       ),
                     ),
-                  if (link.value == LinkState.disconnected && accessDenied) ...[
+                  if (link.value == LinkState.disconnected &&
+                      issue != null) ...[
                     const SizedBox(height: KzSpace.s12),
                     Text(
-                      bluetoothAccessHint,
+                      switch (issue) {
+                        ConnectIssue.accessDenied => bluetoothAccessHint,
+                        ConnectIssue.bluetoothOff => bluetoothOffHint,
+                      },
                       textAlign: TextAlign.center,
                       style: KzTheme.of(context).typography.caption.copyWith(
                         color: KzTheme.of(context).scheme.mutedForeground,

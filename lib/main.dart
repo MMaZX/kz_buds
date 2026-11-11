@@ -35,21 +35,26 @@ const _useFake = bool.fromEnvironment('KZ_FAKE');
 void main() {
   registerKzLicenses();
   final port = _earbudsPort();
+  final container = ProviderContainer(
+    overrides: [earbudsPortProvider.overrideWithValue(port)],
+  );
   runApp(
-    ProviderScope(
-      overrides: [earbudsPortProvider.overrideWithValue(port)],
-      child: const KzBudsApp(),
-    ),
+    UncontrolledProviderScope(container: container, child: const KzBudsApp()),
   );
   if (port is RcspEarbudsAdapter && Platform.isAndroid) {
     // After the first frame, so the permission dialog has an activity. This
     // first attempt is the one that asks for access; the supervisor never
     // tries while the OS cannot tell what is connected.
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Through the notifier, so a denied access or Bluetooth off at launch
+      // shows its hint on the home.
       unawaited(
-        port.connect().catchError(
-          (Object error) => _reconnectLog('connect failed: $error'),
-        ),
+        container
+            .read(reconnectProvider.notifier)
+            .reconnect()
+            .catchError(
+              (Object error) => _reconnectLog('connect failed: $error'),
+            ),
       );
       _superviseAndroid(port);
     });
@@ -69,6 +74,7 @@ EarbudsPort _earbudsPort() {
       discover: BluezEarbudsDiscovery().pairedEarbuds,
       connectOs: bluezConnectProfiles,
       openLink: LinuxRfcommLink.connect,
+      isPoweredOn: bluezPoweredOn,
       log: _reconnectLog.call,
     ),
   );
@@ -93,6 +99,12 @@ RcspEarbudsAdapter _androidAdapter() {
   return RcspEarbudsAdapter(
     () => openAndroidRcspSession(
       requestAccess: requestBluetoothConnect,
+      // `unknown` right after launch is not "off": let discovery retry.
+      isPoweredOn: () async => !const {
+        BluetoothAdapterState.off,
+        BluetoothAdapterState.turningOff,
+        BluetoothAdapterState.unavailable,
+      }.contains(await bluetooth.adapterState()),
       discover: () async =>
           _androidCandidates.prioritize(await discovery.pairedEarbuds()),
       // Short: each wrong candidate costs this much before the next one.

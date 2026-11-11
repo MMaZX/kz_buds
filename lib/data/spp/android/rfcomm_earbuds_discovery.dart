@@ -1,6 +1,7 @@
 import 'package:bluetooth_rfcomm/bluetooth_rfcomm.dart';
 
 import '../../../domain/entities/bluetooth_access_denied.dart';
+import '../../../domain/entities/bluetooth_off.dart';
 import '../../../domain/entities/detected_earbuds.dart';
 import '../../../domain/ports/earbuds_discovery_port.dart';
 
@@ -22,6 +23,8 @@ class RfcommEarbudsDiscovery implements EarbudsDiscoveryPort {
       bonded = await _bluetooth.bondedDevices();
     } on BluetoothPermissionException {
       throw const BluetoothAccessDenied();
+    } on BluetoothDisabledException {
+      throw const BluetoothOff();
     }
     for (final device in bonded) {
       final cod = device.deviceClass;

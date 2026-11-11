@@ -1,4 +1,5 @@
 import '../../../domain/entities/bluetooth_access_denied.dart';
+import '../../../domain/entities/bluetooth_off.dart';
 import '../../../domain/entities/detected_earbuds.dart';
 import '../rcsp_spp_session.dart';
 
@@ -16,6 +17,7 @@ Future<RcspSppSession> openAndroidRcspSession({
   required Future<bool> Function() requestAccess,
   required Future<List<DetectedEarbuds>> Function() discover,
   required Future<SppLink> Function(String id) openLink,
+  Future<bool> Function()? isPoweredOn,
   void Function(String id)? onProven,
   void Function(String id)? onFailed,
   void Function(String message)? log,
@@ -23,6 +25,7 @@ Future<RcspSppSession> openAndroidRcspSession({
   Duration emptyRetryDelay = const Duration(milliseconds: 500),
 }) async {
   if (!await requestAccess()) throw const BluetoothAccessDenied();
+  if (isPoweredOn != null && !await isPoweredOn()) throw const BluetoothOff();
   var found = await discover();
   // Right after launch the OS Bluetooth service may not be bound to the
   // process yet, and the bonded list comes back empty.
@@ -44,6 +47,8 @@ Future<RcspSppSession> openAndroidRcspSession({
       onProven?.call(earbuds.id);
       return session;
     } on BluetoothAccessDenied {
+      rethrow;
+    } on BluetoothOff {
       rethrow;
     } catch (error, stack) {
       onFailed?.call(earbuds.id);

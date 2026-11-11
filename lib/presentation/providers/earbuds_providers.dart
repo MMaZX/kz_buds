@@ -6,6 +6,7 @@ import '../../domain/catalog/earbuds_model.dart';
 import '../../domain/entities/anc_mode.dart';
 import '../../domain/entities/battery_status.dart';
 import '../../domain/entities/bluetooth_access_denied.dart';
+import '../../domain/entities/bluetooth_off.dart';
 import '../../domain/entities/earbuds_identity.dart';
 import '../../domain/entities/link_state.dart';
 import '../../domain/ports/earbuds_port.dart';
@@ -15,23 +16,35 @@ final earbudsPortProvider = Provider<EarbudsPort>(
   (ref) => throw UnimplementedError('earbudsPortProvider must be overridden'),
 );
 
-/// Reconnects the earbuds. Its state is true while the last attempt failed
-/// because the OS denied Bluetooth access; other failures are rethrown.
-class ReconnectNotifier extends Notifier<bool> {
+/// Why the last connect attempt could not even start, when the user can fix
+/// it; null otherwise.
+enum ConnectIssue { accessDenied, bluetoothOff }
+
+/// Reconnects the earbuds and keeps the [ConnectIssue] of the last attempt.
+/// Other failures are rethrown. Any connection, from here or from the OS
+/// supervisor, clears the issue.
+class ReconnectNotifier extends Notifier<ConnectIssue?> {
   @override
-  bool build() => false;
+  ConnectIssue? build() {
+    ref.listen(connectionProvider, (_, next) {
+      if (next.value == LinkState.connected) state = null;
+    });
+    return null;
+  }
 
   Future<void> reconnect() async {
-    state = false;
+    state = null;
     try {
       await ref.read(earbudsPortProvider).connect();
     } on BluetoothAccessDenied {
-      state = true;
+      state = ConnectIssue.accessDenied;
+    } on BluetoothOff {
+      state = ConnectIssue.bluetoothOff;
     }
   }
 }
 
-final reconnectProvider = NotifierProvider<ReconnectNotifier, bool>(
+final reconnectProvider = NotifierProvider<ReconnectNotifier, ConnectIssue?>(
   ReconnectNotifier.new,
 );
 

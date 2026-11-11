@@ -32,6 +32,17 @@ class BluezEarbudsDiscovery implements EarbudsDiscoveryPort {
   }
 }
 
+/// Whether any BlueZ adapter is powered. False with no adapter at all.
+Future<bool> bluezPoweredOn() async {
+  final client = BlueZClient();
+  try {
+    await client.connect();
+    return client.adapters.any((adapter) => adapter.powered);
+  } finally {
+    await client.close();
+  }
+}
+
 /// Asks BlueZ to connect the device (`Device1.Connect`), which brings up its
 /// auto-connect profiles such as A2DP and HFP. Runs even when the device is
 /// already connected: a link opened by our RFCOMM socket alone has no audio.

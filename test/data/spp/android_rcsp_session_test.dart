@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kz_buds/data/spp/android/android_rcsp_session.dart';
 import 'package:kz_buds/domain/entities/bluetooth_access_denied.dart';
+import 'package:kz_buds/domain/entities/bluetooth_off.dart';
 import 'package:kz_buds/domain/entities/detected_earbuds.dart';
 
 import '../../support/fake_rcsp_earbuds.dart';
@@ -27,6 +28,44 @@ void main() {
       throwsA(isA<BluetoothAccessDenied>()),
     );
     expect(calls, isEmpty);
+  });
+
+  test('stops before listing devices while Bluetooth is off', () async {
+    final calls = <String>[];
+
+    await expectLater(
+      openAndroidRcspSession(
+        requestAccess: () async => true,
+        isPoweredOn: () async => false,
+        discover: () async {
+          calls.add('discover');
+          return [carol];
+        },
+        openLink: (id) async {
+          calls.add('link');
+          return FakeRcspEarbuds();
+        },
+      ),
+      throwsA(isA<BluetoothOff>()),
+    );
+    expect(calls, isEmpty);
+  });
+
+  test('stops at Bluetooth turned off mid-attempt', () async {
+    final tried = <String>[];
+
+    await expectLater(
+      openAndroidRcspSession(
+        requestAccess: () async => true,
+        discover: () async => [speaker, carol],
+        openLink: (id) async {
+          tried.add(id);
+          throw const BluetoothOff();
+        },
+      ),
+      throwsA(isA<BluetoothOff>()),
+    );
+    expect(tried, [speaker.id]);
   });
 
   test('tries each candidate until one completes the RCSP handshake', () async {

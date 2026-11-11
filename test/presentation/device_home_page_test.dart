@@ -4,6 +4,7 @@ import 'package:kz_buds/data/fake/fake_earbuds_adapter.dart';
 import 'package:kz_buds/domain/capabilities/capability.dart';
 import 'package:kz_buds/domain/entities/battery_status.dart';
 import 'package:kz_buds/domain/entities/bluetooth_access_denied.dart';
+import 'package:kz_buds/domain/entities/bluetooth_off.dart';
 import 'package:kz_buds/domain/entities/earbuds_identity.dart';
 import 'package:kz_buds/domain/entities/link_state.dart';
 import 'package:kz_buds/presentation/pages/device_home_page.dart';
@@ -218,6 +219,39 @@ void main() {
 
       expect(find.text('Connected'), findsOneWidget);
       expect(find.text(bluetoothAccessHint), findsNothing);
+    });
+
+    testWidgets('Bluetooth off asks to turn it on', (tester) async {
+      final fake = FakeEarbudsAdapter(
+        initialLinkState: LinkState.disconnected,
+        connectError: const BluetoothOff(),
+      );
+      await pumpApp(tester, fake);
+      expect(find.text(bluetoothOffHint), findsNothing);
+
+      await tester.tap(find.text('RECONNECT'));
+      await tester.pumpAndSettle();
+
+      expect(find.text(bluetoothOffHint), findsOneWidget);
+      expect(find.text(bluetoothAccessHint), findsNothing);
+    });
+
+    testWidgets('a connection from elsewhere clears the hint', (tester) async {
+      final fake = FakeEarbudsAdapter(
+        initialLinkState: LinkState.disconnected,
+        connectError: const BluetoothOff(),
+      );
+      await pumpApp(tester, fake);
+      await tester.tap(find.text('RECONNECT'));
+      await tester.pumpAndSettle();
+
+      fake.updateLinkState(LinkState.connected);
+      await tester.pumpAndSettle();
+      fake.updateLinkState(LinkState.disconnected);
+      await tester.pumpAndSettle();
+
+      expect(find.text('RECONNECT'), findsOneWidget);
+      expect(find.text(bluetoothOffHint), findsNothing);
     });
 
     testWidgets('another connect failure shows no access hint', (tester) async {

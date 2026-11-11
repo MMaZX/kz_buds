@@ -16,6 +16,7 @@ import '../theme/kz_model_art.dart';
 import '../theme/kz_theme.dart';
 import '../widgets/kz_anc_icon.dart';
 import '../widgets/kz_battery_indicator.dart';
+import '../widgets/kz_loading_skeleton.dart';
 import '../widgets/kz_page.dart';
 import '../widgets/kz_pill_button.dart';
 import '../widgets/kz_pressable.dart';
@@ -47,6 +48,7 @@ class DeviceHomePage extends ConsumerWidget {
     final mode = ref.watch(ancModeProvider).value ?? AncMode.off;
     final model = ref.watch(earbudsModelProvider);
     final connected = link.value == LinkState.connected;
+    final connecting = link.value == LinkState.connecting;
     final issue = ref.watch(reconnectProvider);
     final hasEq = capabilities.contains(Capability.eq);
     final hasRemap = capabilities.contains(Capability.buttonRemap);
@@ -80,8 +82,10 @@ class DeviceHomePage extends ConsumerWidget {
                         maxHeight: _heroMaxHeight,
                       ),
                       child: Opacity(
-                        opacity: connected ? 1 : _dimmedHeroOpacity,
-                        child: _Hero(model: model),
+                        opacity: connected || connecting
+                            ? 1
+                            : _dimmedHeroOpacity,
+                        child: _Hero(model: model, connecting: connecting),
                       ),
                     ),
                   ),
@@ -180,17 +184,32 @@ class DeviceHomePage extends ConsumerWidget {
   }
 }
 
-/// The model's artwork, or a generic placeholder for unknown models.
+/// Shown by the hero while connecting to earbuds without known artwork.
+const connectingLabel = 'Connecting to your earbuds';
+
+/// The model's artwork. Without it: the loading skeleton while connecting,
+/// else a still earbuds icon (disconnected, or a model with no art).
 class _Hero extends StatelessWidget {
-  const _Hero({required this.model});
+  const _Hero({required this.model, required this.connecting});
 
   final EarbudsModel? model;
+  final bool connecting;
 
   @override
   Widget build(BuildContext context) {
     final asset = KzModelArt.assetFor(model);
     if (asset == null) {
-      return Placeholder(color: KzTheme.of(context).scheme.mutedForeground);
+      if (connecting) return const KzLoadingSkeleton(label: connectingLabel);
+      return FractionallySizedBox(
+        heightFactor: 0.4,
+        child: FittedBox(
+          child: KzIcon(
+            KzIcons.earbuds,
+            size: 96,
+            color: KzTheme.of(context).scheme.mutedForeground,
+          ),
+        ),
+      );
     }
     return Image.asset(
       asset,

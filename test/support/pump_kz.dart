@@ -10,6 +10,7 @@ Future<void> pumpKz(
   WidgetTester tester,
   Widget child, {
   KzThemePreference preference = KzThemePreference.dark,
+  bool settle = true,
 }) async {
   await tester.pumpWidget(
     WidgetsApp(
@@ -28,5 +29,6 @@ Future<void> pumpKz(
       home: Center(child: child),
     ),
   );
-  await tester.pumpAndSettle();
+  // An endless animation never settles; pump one frame instead.
+  settle ? await tester.pumpAndSettle() : await tester.pump();
 }

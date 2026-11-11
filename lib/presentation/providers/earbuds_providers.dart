@@ -5,6 +5,7 @@ import '../../domain/catalog/earbuds_catalog.dart';
 import '../../domain/catalog/earbuds_model.dart';
 import '../../domain/entities/anc_mode.dart';
 import '../../domain/entities/battery_status.dart';
+import '../../domain/entities/bluetooth_access_denied.dart';
 import '../../domain/entities/earbuds_identity.dart';
 import '../../domain/entities/link_state.dart';
 import '../../domain/ports/earbuds_port.dart';
@@ -12,6 +13,26 @@ import '../../domain/ports/earbuds_port.dart';
 /// Overridden in the composition root (`main.dart`) with a concrete adapter.
 final earbudsPortProvider = Provider<EarbudsPort>(
   (ref) => throw UnimplementedError('earbudsPortProvider must be overridden'),
+);
+
+/// Reconnects the earbuds. Its state is true while the last attempt failed
+/// because the OS denied Bluetooth access; other failures are rethrown.
+class ReconnectNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  Future<void> reconnect() async {
+    state = false;
+    try {
+      await ref.read(earbudsPortProvider).connect();
+    } on BluetoothAccessDenied {
+      state = true;
+    }
+  }
+}
+
+final reconnectProvider = NotifierProvider<ReconnectNotifier, bool>(
+  ReconnectNotifier.new,
 );
 
 final connectionProvider = StreamProvider<LinkState>(

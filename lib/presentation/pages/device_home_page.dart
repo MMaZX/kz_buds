@@ -24,6 +24,10 @@ import 'app_shell.dart';
 import 'find_page.dart';
 import 'kz_route.dart';
 
+/// Shown under Reconnect after the OS denied Bluetooth access.
+const bluetoothAccessHint =
+    'Bluetooth access denied. Allow it for KZ Buds in system settings.';
+
 class DeviceHomePage extends ConsumerWidget {
   const DeviceHomePage({super.key});
 
@@ -40,6 +44,7 @@ class DeviceHomePage extends ConsumerWidget {
     final mode = ref.watch(ancModeProvider).value ?? AncMode.off;
     final model = ref.watch(earbudsModelProvider);
     final connected = link.value == LinkState.connected;
+    final accessDenied = ref.watch(reconnectProvider);
     final hasEq = capabilities.contains(Capability.eq);
     final hasRemap = capabilities.contains(Capability.buttonRemap);
     final tabs = ref.read(selectedTabProvider.notifier);
@@ -90,14 +95,24 @@ class DeviceHomePage extends ConsumerWidget {
                       ),
                       onPressed: () => unawaited(
                         ref
-                            .read(earbudsPortProvider)
-                            .connect()
+                            .read(reconnectProvider.notifier)
+                            .reconnect()
                             .catchError(
                               (Object error) =>
                                   debugPrint('Reconnect failed: $error'),
                             ),
                       ),
                     ),
+                  if (link.value == LinkState.disconnected && accessDenied) ...[
+                    const SizedBox(height: KzSpace.s12),
+                    Text(
+                      bluetoothAccessHint,
+                      textAlign: TextAlign.center,
+                      style: KzTheme.of(context).typography.caption.copyWith(
+                        color: KzTheme.of(context).scheme.mutedForeground,
+                      ),
+                    ),
+                  ],
                   if (connected) ...[
                     switch (battery) {
                       AsyncData(:final value) => _BatteryRow(status: value),

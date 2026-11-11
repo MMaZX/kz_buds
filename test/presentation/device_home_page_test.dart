@@ -3,8 +3,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kz_buds/data/fake/fake_earbuds_adapter.dart';
 import 'package:kz_buds/domain/capabilities/capability.dart';
 import 'package:kz_buds/domain/entities/battery_status.dart';
+import 'package:kz_buds/domain/entities/bluetooth_access_denied.dart';
 import 'package:kz_buds/domain/entities/earbuds_identity.dart';
 import 'package:kz_buds/domain/entities/link_state.dart';
+import 'package:kz_buds/presentation/pages/device_home_page.dart';
 import 'package:kz_buds/presentation/providers/navigation_providers.dart';
 import 'package:kz_buds/presentation/theme/kz_model_art.dart';
 import 'package:kz_buds/presentation/theme/kz_palette.dart';
@@ -191,6 +193,47 @@ void main() {
       expect(fake.connectCalls, 1);
       expect(find.text('Connected'), findsOneWidget);
       expect(find.text('RECONNECT'), findsNothing);
+    });
+
+    testWidgets('a denied Bluetooth access asks for it in settings', (
+      tester,
+    ) async {
+      final fake = FakeEarbudsAdapter(
+        initialLinkState: LinkState.disconnected,
+        connectError: const BluetoothAccessDenied(),
+      );
+      await pumpApp(tester, fake);
+      expect(find.text(bluetoothAccessHint), findsNothing);
+
+      await tester.tap(find.text('RECONNECT'));
+      await tester.pumpAndSettle();
+
+      expect(fake.connectCalls, 1);
+      expect(find.text('Disconnected'), findsOneWidget);
+      expect(find.text(bluetoothAccessHint), findsOneWidget);
+
+      fake.connectError = null;
+      await tester.tap(find.text('RECONNECT'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Connected'), findsOneWidget);
+      expect(find.text(bluetoothAccessHint), findsNothing);
+    });
+
+    testWidgets('another connect failure shows no access hint', (tester) async {
+      await pumpApp(
+        tester,
+        FakeEarbudsAdapter(
+          initialLinkState: LinkState.disconnected,
+          connectError: StateError('No paired audio devices found'),
+        ),
+      );
+
+      await tester.tap(find.text('RECONNECT'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Disconnected'), findsOneWidget);
+      expect(find.text(bluetoothAccessHint), findsNothing);
     });
 
     testWidgets('connected and connecting hide Reconnect', (tester) async {

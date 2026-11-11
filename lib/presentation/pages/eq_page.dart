@@ -188,7 +188,7 @@ class _EqEditorState extends ConsumerState<_EqEditor> {
                   ),
             ],
           ),
-          child: const Text('SIMPLE'), 
+          child: const Text('SIMPLE'),
         ),
         ShadTab(
           value: _EqTab.advanced,

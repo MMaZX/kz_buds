@@ -1,4 +1,4 @@
-package com.example.kz_buds
+package com.fapps.kz_buds
 
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothA2dp

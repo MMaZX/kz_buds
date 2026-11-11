@@ -1,10 +1,10 @@
-import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kz_buds/data/fake/fake_earbuds_adapter.dart';
 import 'package:kz_buds/domain/capabilities/capability.dart';
 import 'package:kz_buds/domain/entities/anc_mode.dart';
 import 'package:kz_buds/domain/entities/eq_settings.dart';
+import 'package:kz_buds/presentation/pages/device_home_page.dart';
 import 'package:kz_buds/presentation/providers/eq_providers.dart';
 import 'package:kz_buds/presentation/widgets/equalizer/kz_equalizer.dart';
 import 'package:kz_buds/presentation/widgets/kz_nav_pill.dart';
@@ -51,11 +51,11 @@ void main() {
       await tester.tap(find.bySemanticsLabel('Equalizer'));
       await tester.pumpAndSettle();
       expect(find.text('Equalizer'), findsWidgets);
-      expect(find.byType(Placeholder), findsNothing);
+      expect(find.byType(DeviceHomePage), findsNothing);
 
       await tester.tap(find.bySemanticsLabel('Home'));
       await tester.pumpAndSettle();
-      expect(find.byType(Placeholder), findsOneWidget);
+      expect(find.byType(DeviceHomePage), findsOneWidget);
     });
   });
 
@@ -175,7 +175,7 @@ void main() {
       expect(find.text('AMBIENT'), findsOneWidget);
       expect(find.text('OFF'), findsOneWidget);
       // The home stays underneath: no page was pushed.
-      expect(find.byType(Placeholder), findsOneWidget);
+      expect(find.byType(DeviceHomePage), findsOneWidget);
     });
 
     testWidgets('choosing a mode sets it on the device and selects it', (

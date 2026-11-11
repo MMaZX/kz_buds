@@ -11,6 +11,10 @@ abstract final class KzIcons {
   static const KzIconData ear = HugeIcons.strokeRoundedEar;
   static const KzIconData earRings = HugeIcons.strokeRoundedEarRings01;
   static const KzIconData earbuds = HugeIcons.strokeRoundedAirpod01;
+  static const KzIconData headphones = HugeIcons.strokeRoundedHeadphones;
+  static const KzIconData headset = HugeIcons.strokeRoundedHeadset;
+  static const KzIconData bluetoothSearch =
+      HugeIcons.strokeRoundedBluetoothSearch;
   static const KzIconData tap = HugeIcons.strokeRoundedTap01;
   static const KzIconData gameMode = HugeIcons.strokeRoundedGameController03;
   static const KzIconData eq = HugeIcons.strokeRoundedAudioWave01;

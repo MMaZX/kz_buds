@@ -3,12 +3,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kz_buds/data/fake/fake_earbuds_adapter.dart';
 import 'package:kz_buds/domain/capabilities/capability.dart';
 import 'package:kz_buds/domain/entities/battery_status.dart';
+import 'package:kz_buds/domain/entities/bluetooth_access_denied.dart';
+import 'package:kz_buds/domain/entities/bluetooth_off.dart';
 import 'package:kz_buds/domain/entities/earbuds_identity.dart';
 import 'package:kz_buds/domain/entities/link_state.dart';
+import 'package:kz_buds/presentation/pages/device_home_page.dart';
 import 'package:kz_buds/presentation/providers/navigation_providers.dart';
 import 'package:kz_buds/presentation/theme/kz_model_art.dart';
 import 'package:kz_buds/presentation/theme/kz_palette.dart';
 import 'package:kz_buds/presentation/theme/kz_theme_preference.dart';
+import 'package:kz_buds/presentation/widgets/kz_loading_skeleton.dart';
 import 'package:kz_buds/presentation/widgets/noise_control_sheet.dart';
 
 import '../support/pump_home.dart';
@@ -161,6 +165,7 @@ void main() {
     });
 
     testWidgets('connecting shows the status', (tester) async {
+      reduceMotion(tester);
       await pumpApp(
         tester,
         FakeEarbudsAdapter(initialLinkState: LinkState.connecting),
@@ -193,7 +198,82 @@ void main() {
       expect(find.text('RECONNECT'), findsNothing);
     });
 
+    testWidgets('a denied Bluetooth access asks for it in settings', (
+      tester,
+    ) async {
+      final fake = FakeEarbudsAdapter(
+        initialLinkState: LinkState.disconnected,
+        connectError: const BluetoothAccessDenied(),
+      );
+      await pumpApp(tester, fake);
+      expect(find.text(bluetoothAccessHint), findsNothing);
+
+      await tester.tap(find.text('RECONNECT'));
+      await tester.pumpAndSettle();
+
+      expect(fake.connectCalls, 1);
+      expect(find.text('Disconnected'), findsOneWidget);
+      expect(find.text(bluetoothAccessHint), findsOneWidget);
+
+      fake.connectError = null;
+      await tester.tap(find.text('RECONNECT'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Connected'), findsOneWidget);
+      expect(find.text(bluetoothAccessHint), findsNothing);
+    });
+
+    testWidgets('Bluetooth off asks to turn it on', (tester) async {
+      final fake = FakeEarbudsAdapter(
+        initialLinkState: LinkState.disconnected,
+        connectError: const BluetoothOff(),
+      );
+      await pumpApp(tester, fake);
+      expect(find.text(bluetoothOffHint), findsNothing);
+
+      await tester.tap(find.text('RECONNECT'));
+      await tester.pumpAndSettle();
+
+      expect(find.text(bluetoothOffHint), findsOneWidget);
+      expect(find.text(bluetoothAccessHint), findsNothing);
+    });
+
+    testWidgets('a connection from elsewhere clears the hint', (tester) async {
+      final fake = FakeEarbudsAdapter(
+        initialLinkState: LinkState.disconnected,
+        connectError: const BluetoothOff(),
+      );
+      await pumpApp(tester, fake);
+      await tester.tap(find.text('RECONNECT'));
+      await tester.pumpAndSettle();
+
+      fake.updateLinkState(LinkState.connected);
+      await tester.pumpAndSettle();
+      fake.updateLinkState(LinkState.disconnected);
+      await tester.pumpAndSettle();
+
+      expect(find.text('RECONNECT'), findsOneWidget);
+      expect(find.text(bluetoothOffHint), findsNothing);
+    });
+
+    testWidgets('another connect failure shows no access hint', (tester) async {
+      await pumpApp(
+        tester,
+        FakeEarbudsAdapter(
+          initialLinkState: LinkState.disconnected,
+          connectError: StateError('No paired audio devices found'),
+        ),
+      );
+
+      await tester.tap(find.text('RECONNECT'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Disconnected'), findsOneWidget);
+      expect(find.text(bluetoothAccessHint), findsNothing);
+    });
+
     testWidgets('connected and connecting hide Reconnect', (tester) async {
+      reduceMotion(tester);
       await pumpApp(tester, FakeEarbudsAdapter());
       expect(find.text('RECONNECT'), findsNothing);
 
@@ -202,6 +282,37 @@ void main() {
         FakeEarbudsAdapter(initialLinkState: LinkState.connecting),
       );
       expect(find.text('RECONNECT'), findsNothing);
+    });
+  });
+
+  group('hero without artwork', () {
+    testWidgets('connecting shows the loading skeleton', (tester) async {
+      reduceMotion(tester);
+      await pumpApp(
+        tester,
+        FakeEarbudsAdapter(initialLinkState: LinkState.connecting),
+      );
+
+      expect(find.byType(KzLoadingSkeleton), findsOneWidget);
+      expect(find.bySemanticsLabel(connectingLabel), findsOneWidget);
+      expect(find.byType(Placeholder), findsNothing);
+    });
+
+    testWidgets('disconnected shows a still icon, not loading', (tester) async {
+      await pumpApp(
+        tester,
+        FakeEarbudsAdapter(initialLinkState: LinkState.disconnected),
+      );
+
+      expect(find.byType(KzLoadingSkeleton), findsNothing);
+      expect(find.byType(Placeholder), findsNothing);
+    });
+
+    testWidgets('a connected model without art is not loading', (tester) async {
+      await pumpApp(tester, FakeEarbudsAdapter());
+
+      expect(find.byType(KzLoadingSkeleton), findsNothing);
+      expect(find.byType(Placeholder), findsNothing);
     });
   });
 
@@ -217,11 +328,6 @@ void main() {
     expect((image.image as AssetImage).assetName, KzModelArt.kzCarolPro);
     expect(find.bySemanticsLabel('KZ Carol Pro'), findsOneWidget);
     expect(find.byType(Placeholder), findsNothing);
-  });
-
-  testWidgets('the hero is a Placeholder until renders exist', (tester) async {
-    await pumpApp(tester, FakeEarbudsAdapter());
-    expect(find.byType(Placeholder), findsOneWidget);
   });
 
   group('renders in dark and light for every state', () {
@@ -247,9 +353,16 @@ void main() {
         testWidgets('${entry.key} / ${preference.name}', (tester) async {
           await pumpApp(tester, entry.value(), preference: preference);
           expect(tester.takeException(), isNull);
-          expect(find.byType(Placeholder), findsOneWidget);
+          expect(find.byType(DeviceHomePage), findsOneWidget);
         });
       }
     }
   });
+}
+
+/// Stills endless animations so `pumpAndSettle` can finish.
+void reduceMotion(WidgetTester tester) {
+  tester.platformDispatcher.accessibilityFeaturesTestValue =
+      const FakeAccessibilityFeatures(disableAnimations: true);
+  addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
 }

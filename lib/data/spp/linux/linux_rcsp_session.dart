@@ -1,3 +1,4 @@
+import '../../../domain/entities/bluetooth_off.dart';
 import '../../../domain/entities/detected_earbuds.dart';
 import '../rcsp_spp_session.dart';
 
@@ -12,7 +13,9 @@ Future<RcspSppSession> openLinuxRcspSession({
   required Future<void> Function(String id) connectOs,
   required Future<SppLink> Function(String id) openLink,
   void Function(String message)? log,
+  Future<bool> Function()? isPoweredOn,
 }) async {
+  if (isPoweredOn != null && !await isPoweredOn()) throw const BluetoothOff();
   final found = await discover();
   if (found.isEmpty) throw StateError('No paired JieLi earbuds found');
   final earbuds = found.first;

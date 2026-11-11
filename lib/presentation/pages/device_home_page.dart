@@ -16,6 +16,7 @@ import '../theme/kz_model_art.dart';
 import '../theme/kz_theme.dart';
 import '../widgets/kz_anc_icon.dart';
 import '../widgets/kz_battery_indicator.dart';
+import '../widgets/kz_loading_skeleton.dart';
 import '../widgets/kz_page.dart';
 import '../widgets/kz_pill_button.dart';
 import '../widgets/kz_pressable.dart';
@@ -23,6 +24,13 @@ import '../widgets/noise_control_sheet.dart';
 import 'app_shell.dart';
 import 'find_page.dart';
 import 'kz_route.dart';
+
+/// Shown under Reconnect after the OS denied Bluetooth access.
+const bluetoothAccessHint =
+    'Bluetooth access denied. Allow it for KZ Buds in system settings.';
+
+/// Shown under Reconnect while the Bluetooth radio is off.
+const bluetoothOffHint = 'Bluetooth is off. Turn it on to connect the earbuds.';
 
 class DeviceHomePage extends ConsumerWidget {
   const DeviceHomePage({super.key});
@@ -40,6 +48,8 @@ class DeviceHomePage extends ConsumerWidget {
     final mode = ref.watch(ancModeProvider).value ?? AncMode.off;
     final model = ref.watch(earbudsModelProvider);
     final connected = link.value == LinkState.connected;
+    final connecting = link.value == LinkState.connecting;
+    final issue = ref.watch(reconnectProvider);
     final hasEq = capabilities.contains(Capability.eq);
     final hasRemap = capabilities.contains(Capability.buttonRemap);
     final tabs = ref.read(selectedTabProvider.notifier);
@@ -72,8 +82,10 @@ class DeviceHomePage extends ConsumerWidget {
                         maxHeight: _heroMaxHeight,
                       ),
                       child: Opacity(
-                        opacity: connected ? 1 : _dimmedHeroOpacity,
-                        child: _Hero(model: model),
+                        opacity: connected || connecting
+                            ? 1
+                            : _dimmedHeroOpacity,
+                        child: _Hero(model: model, connecting: connecting),
                       ),
                     ),
                   ),
@@ -90,14 +102,28 @@ class DeviceHomePage extends ConsumerWidget {
                       ),
                       onPressed: () => unawaited(
                         ref
-                            .read(earbudsPortProvider)
-                            .connect()
+                            .read(reconnectProvider.notifier)
+                            .reconnect()
                             .catchError(
                               (Object error) =>
                                   debugPrint('Reconnect failed: $error'),
                             ),
                       ),
                     ),
+                  if (link.value == LinkState.disconnected &&
+                      issue != null) ...[
+                    const SizedBox(height: KzSpace.s12),
+                    Text(
+                      switch (issue) {
+                        ConnectIssue.accessDenied => bluetoothAccessHint,
+                        ConnectIssue.bluetoothOff => bluetoothOffHint,
+                      },
+                      textAlign: TextAlign.center,
+                      style: KzTheme.of(context).typography.caption.copyWith(
+                        color: KzTheme.of(context).scheme.mutedForeground,
+                      ),
+                    ),
+                  ],
                   if (connected) ...[
                     switch (battery) {
                       AsyncData(:final value) => _BatteryRow(status: value),
@@ -158,17 +184,32 @@ class DeviceHomePage extends ConsumerWidget {
   }
 }
 
-/// The model's artwork, or a generic placeholder for unknown models.
+/// Shown by the hero while connecting to earbuds without known artwork.
+const connectingLabel = 'Connecting to your earbuds';
+
+/// The model's artwork. Without it: the loading skeleton while connecting,
+/// else a still earbuds icon (disconnected, or a model with no art).
 class _Hero extends StatelessWidget {
-  const _Hero({required this.model});
+  const _Hero({required this.model, required this.connecting});
 
   final EarbudsModel? model;
+  final bool connecting;
 
   @override
   Widget build(BuildContext context) {
     final asset = KzModelArt.assetFor(model);
     if (asset == null) {
-      return Placeholder(color: KzTheme.of(context).scheme.mutedForeground);
+      if (connecting) return const KzLoadingSkeleton(label: connectingLabel);
+      return FractionallySizedBox(
+        heightFactor: 0.4,
+        child: FittedBox(
+          child: KzIcon(
+            KzIcons.earbuds,
+            size: 96,
+            color: KzTheme.of(context).scheme.mutedForeground,
+          ),
+        ),
+      );
     }
     return Image.asset(
       asset,

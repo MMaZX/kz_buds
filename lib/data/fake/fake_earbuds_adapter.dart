@@ -20,6 +20,7 @@ class FakeEarbudsAdapter implements EarbudsPort {
     ),
     LinkState initialLinkState = LinkState.connected,
     this._identity,
+    this.connectError,
   }) : _capabilities = Set.unmodifiable(capabilities),
        _battery = initialBattery,
        _link = initialLinkState;
@@ -61,6 +62,9 @@ class FakeEarbudsAdapter implements EarbudsPort {
 
   int _connectCalls = 0;
 
+  /// Thrown by [connect], after a brief connecting state, when set.
+  Object? connectError;
+
   AncMode get ancMode => _ancMode;
 
   /// How many times [connect] was called.
@@ -72,6 +76,11 @@ class FakeEarbudsAdapter implements EarbudsPort {
     if (_link != LinkState.disconnected) return;
     updateLinkState(LinkState.connecting);
     await Future<void>.delayed(Duration.zero);
+    final error = connectError;
+    if (error != null) {
+      updateLinkState(LinkState.disconnected);
+      throw error;
+    }
     updateLinkState(LinkState.connected);
   }
 

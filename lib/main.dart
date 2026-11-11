@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:bluetooth_rfcomm/bluetooth_rfcomm.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
@@ -9,9 +10,15 @@ import 'core/debug_log.dart';
 import 'data/fake/fake_earbuds_adapter.dart';
 import 'data/rcsp/rcsp_earbuds_adapter.dart';
 import 'data/rcsp/reconnect_supervisor.dart';
+import 'data/spp/android/android_bluetooth_access.dart';
+import 'data/spp/android/android_connected_audio.dart';
+import 'data/spp/android/android_rcsp_candidates.dart';
+import 'data/spp/android/android_rcsp_session.dart';
+import 'data/spp/android/rfcomm_earbuds_discovery.dart';
 import 'data/spp/bluez_earbuds_discovery.dart';
 import 'data/spp/linux/linux_rcsp_session.dart';
 import 'data/spp/linux/linux_rfcomm_link.dart';
+import 'data/spp/rfcomm_package_link.dart';
 import 'domain/capabilities/capability.dart';
 import 'domain/entities/earbuds_identity.dart';
 import 'domain/ports/earbuds_port.dart';
@@ -27,15 +34,35 @@ const _useFake = bool.fromEnvironment('KZ_FAKE');
 
 void main() {
   registerKzLicenses();
-  runApp(
-    ProviderScope(
-      overrides: [earbudsPortProvider.overrideWithValue(_earbudsPort())],
-      child: const KzBudsApp(),
-    ),
+  final port = _earbudsPort();
+  final container = ProviderContainer(
+    overrides: [earbudsPortProvider.overrideWithValue(port)],
   );
+  runApp(
+    UncontrolledProviderScope(container: container, child: const KzBudsApp()),
+  );
+  if (port is RcspEarbudsAdapter && Platform.isAndroid) {
+    // After the first frame, so the permission dialog has an activity. This
+    // first attempt is the one that asks for access; the supervisor never
+    // tries while the OS cannot tell what is connected.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Through the notifier, so a denied access or Bluetooth off at launch
+      // shows its hint on the home.
+      unawaited(
+        container
+            .read(reconnectProvider.notifier)
+            .reconnect()
+            .catchError(
+              (Object error) => _reconnectLog('connect failed: $error'),
+            ),
+      );
+      _superviseAndroid(port);
+    });
+  }
 }
 
 EarbudsPort _earbudsPort() {
+  if (!_useFake && Platform.isAndroid) return _androidAdapter();
   if (_useFake || !Platform.isLinux) {
     return FakeEarbudsAdapter(
       capabilities: {Capability.anc, Capability.eq},
@@ -47,11 +74,66 @@ EarbudsPort _earbudsPort() {
       discover: BluezEarbudsDiscovery().pairedEarbuds,
       connectOs: bluezConnectProfiles,
       openLink: LinuxRfcommLink.connect,
+      isPoweredOn: bluezPoweredOn,
       log: _reconnectLog.call,
     ),
   );
   unawaited(_superviseLinux(adapter));
   return adapter;
+}
+
+final _androidCandidates = AndroidRcspCandidates();
+
+/// Android keeps the audio profiles up on its own; we only open SPP.
+RcspEarbudsAdapter _androidAdapter() {
+  final bluetooth = BluetoothRfcomm.instance;
+  final discovery = RfcommEarbudsDiscovery(
+    bluetooth,
+    connectedAddresses: () async {
+      final connected = await androidConnectedAudioAddresses();
+      _androidCandidates.update(connected);
+      return connected;
+    },
+    log: _reconnectLog.call,
+  );
+  return RcspEarbudsAdapter(
+    () => openAndroidRcspSession(
+      requestAccess: requestBluetoothConnect,
+      // `unknown` right after launch is not "off": let discovery retry.
+      isPoweredOn: () async => !const {
+        BluetoothAdapterState.off,
+        BluetoothAdapterState.turningOff,
+        BluetoothAdapterState.unavailable,
+      }.contains(await bluetooth.adapterState()),
+      discover: () async =>
+          _androidCandidates.prioritize(await discovery.pairedEarbuds()),
+      // Short: each wrong candidate costs this much before the next one.
+      openLink: (id) => RfcommPackageLink.connect(
+        bluetooth,
+        id,
+        timeout: const Duration(seconds: 6),
+      ),
+      onProven: _androidCandidates.proven,
+      onFailed: _androidCandidates.failed,
+      log: _reconnectLog.call,
+    ),
+  );
+}
+
+/// Event-driven reconnect: Android signals each audio connection change, and
+/// the control session is kept up while a connected device is worth trying.
+/// Needs the Flutter binding, so it starts after `runApp`.
+void _superviseAndroid(RcspEarbudsAdapter adapter) {
+  androidConnectedAudioChanges().listen(
+    _androidCandidates.update,
+    onError: (Object error) => _reconnectLog('audio link watch failed: $error'),
+  );
+  ReconnectSupervisor(
+    osLink: _androidCandidates.worthTryingChanges,
+    session: adapter.watchConnection(),
+    connect: adapter.connect,
+    log: _reconnectLog.call,
+  ).start();
 }
 
 /// Hybrid reconnect: follow the OS link of the first detected earbuds and

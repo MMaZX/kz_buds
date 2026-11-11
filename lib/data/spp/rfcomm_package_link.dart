@@ -2,6 +2,8 @@ import 'dart:typed_data';
 
 import 'package:bluetooth_rfcomm/bluetooth_rfcomm.dart';
 
+import '../../domain/entities/bluetooth_access_denied.dart';
+import '../../domain/entities/bluetooth_off.dart';
 import 'rcsp_spp_session.dart';
 
 /// [SppLink] over `bluetooth_rfcomm`, for Android and Windows. Not for Linux:
@@ -16,13 +18,21 @@ class RfcommPackageLink implements SppLink {
     BluetoothRfcomm bluetooth,
     String address, {
     Duration timeout = const Duration(seconds: 15),
-  }) async => RfcommPackageLink._(
-    await bluetooth.connect(
-      BluetoothDevice(id: DeviceId.address(address)),
-      serviceUuid: Uuid.spp,
-      timeout: timeout,
-    ),
-  );
+  }) async {
+    try {
+      return RfcommPackageLink._(
+        await bluetooth.connect(
+          BluetoothDevice(id: DeviceId.address(address)),
+          serviceUuid: Uuid.spp,
+          timeout: timeout,
+        ),
+      );
+    } on BluetoothPermissionException {
+      throw const BluetoothAccessDenied();
+    } on BluetoothDisabledException {
+      throw const BluetoothOff();
+    }
+  }
 
   @override
   Stream<List<int>> get incoming => _connection.input;
